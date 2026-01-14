@@ -1,5 +1,6 @@
 {
-  "name": "Leroy Merlin - Gestor de Proyectos de Cocinas",
-  "description": "Una aplicación robusta para la gestión de presupuestos y proyectos de cocinas, con seguimiento paso a paso desde la acogida hasta la instalación final.",
-  "requestFramePermissions": []
+  "name": "Leroy Merlin - Gestor Proyectos Cocinas",
+  "description": "App de gestión paso a paso (Acogida, Presupuesto, Visita, Seguimiento) con sincronización en Google Sheets.",
+  "requestFramePermissions": [],
+  "homepage": "/dbcocinas/"
 }
