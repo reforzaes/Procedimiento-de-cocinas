@@ -8,7 +8,7 @@ import StepThree from './components/StepThree';
 import StepFour from './components/StepFour';
 import Dashboard from './components/Dashboard';
 import { STEP_ICONS } from './constants';
-import { RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { RefreshCw, CheckCircle2 } from 'lucide-react';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycIG428mdwrOxhd9MMee-qoPHZeguYsPFkgswAZjxh6DJazHkghYHp0bvkpa7hjykd/exec'; 
 
@@ -18,6 +18,11 @@ const App: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+
+  // Filtros Globales
+  const [filterCollab, setFilterCollab] = useState<string>('all');
+  const [filterStart, setFilterStart] = useState<string>('');
+  const [filterEnd, setFilterEnd] = useState<string>('');
 
   useEffect(() => {
     const saved = localStorage.getItem('lm-projects');
@@ -79,13 +84,19 @@ const App: React.FC = () => {
     setProjects(updated);
     localStorage.setItem('lm-projects', JSON.stringify(updated));
     syncToSheets(newProject);
-    setSelectedProjectId(newProject.id);
+    setSelectedProjectId(null); 
   };
 
-  const handleProjectSelect = (id: string, step: number) => {
-    setSelectedProjectId(id);
-    setActiveStep(step as Step);
-  };
+  const filteredProjects = useMemo(() => {
+    return projects.filter(p => {
+      const matchCollab = filterCollab === 'all' || p.ldapCollaborator === filterCollab || p.step2Collaborator === filterCollab;
+      const date = new Date(p.receptionDate);
+      const start = filterStart ? new Date(filterStart) : null;
+      const end = filterEnd ? new Date(filterEnd) : null;
+      const matchDate = (!start || date >= start) && (!end || date <= end);
+      return matchCollab && matchDate;
+    });
+  }, [projects, filterCollab, filterStart, filterEnd]);
 
   const currentProject = useMemo(() => 
     projects.find(p => p.id === selectedProjectId) || null
@@ -93,9 +104,18 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50/50">
-      <Header projects={projects} onSelectProject={handleProjectSelect} />
+      <Header 
+        projects={projects} 
+        onSelectProject={(id, step) => { setSelectedProjectId(id); setActiveStep(step); }}
+        filterCollab={filterCollab}
+        setFilterCollab={setFilterCollab}
+        filterStart={filterStart}
+        setFilterStart={setFilterStart}
+        filterEnd={filterEnd}
+        setFilterEnd={setFilterEnd}
+      />
 
-      <nav className="bg-white border-b shadow-sm sticky top-[72px] z-40">
+      <nav className="bg-white border-b shadow-sm sticky top-[130px] z-40">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
           <div className="flex space-x-4 md:space-x-8 overflow-x-auto scrollbar-hide">
             {[
@@ -107,7 +127,7 @@ const App: React.FC = () => {
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveStep(tab.id)}
+                onClick={() => { setActiveStep(tab.id); setSelectedProjectId(null); }}
                 className={`flex items-center space-x-2 py-4 border-b-2 font-black transition-all whitespace-nowrap text-xs md:text-sm uppercase tracking-tighter italic ${
                   activeStep === tab.id 
                     ? 'border-[#669900] text-[#669900]' 
@@ -121,15 +141,14 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {syncStatus === 'saving' && <span className="text-[9px] font-black text-blue-500 animate-pulse">AUTOGRABANDO...</span>}
-            {syncStatus === 'success' && <span className="text-[9px] font-black text-[#669900] flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> GUARDADO</span>}
+            {syncStatus === 'saving' && <span className="text-[9px] font-black text-blue-500 animate-pulse">SINCRO...</span>}
+            {syncStatus === 'success' && <span className="text-[9px] font-black text-[#669900] flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> OK</span>}
             <button 
               onClick={fetchDataFromSheets}
               disabled={isSyncing}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all"
+              className="p-2 rounded-full bg-gray-100 text-gray-400 hover:text-[#669900] transition-all"
             >
-              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-              SINCRO EXCEL
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
@@ -139,38 +158,41 @@ const App: React.FC = () => {
         {activeStep === Step.ACOGIDA && (
           <StepOne 
             project={currentProject} 
-            projects={projects.filter(p => p.currentStep === 1)}
+            // Mostramos los que han pasado por aquí o están aquí
+            projects={filteredProjects.filter(p => p.currentStep >= 1)}
             onUpdate={updateProject}
             onCreate={createProject}
-            onSelect={handleProjectSelect}
+            onSelect={(id) => setSelectedProjectId(id)}
           />
         )}
         {activeStep === Step.PRESUPUESTO && (
           <StepTwo 
             project={currentProject} 
-            projects={projects.filter(p => p.currentStep === 2)}
+            // Mostramos los que han llegado a presupuesto
+            projects={filteredProjects.filter(p => p.currentStep >= 2)}
             onUpdate={updateProject}
-            onSelect={handleProjectSelect}
+            onCreate={createProject}
+            onSelect={(id) => setSelectedProjectId(id)}
           />
         )}
         {activeStep === Step.VISITA && (
           <StepThree 
             project={currentProject} 
-            projects={projects.filter(p => p.currentStep === 3)}
+            projects={filteredProjects.filter(p => p.currentStep >= 3)}
             onUpdate={updateProject}
-            onSelect={handleProjectSelect}
+            onSelect={(id) => setSelectedProjectId(id)}
           />
         )}
         {activeStep === Step.SEGUIMIENTO && (
           <StepFour 
             project={currentProject} 
-            projects={projects.filter(p => p.currentStep === 4)}
+            projects={filteredProjects.filter(p => p.currentStep >= 4)}
             onUpdate={updateProject}
-            onSelect={handleProjectSelect}
+            onSelect={(id) => setSelectedProjectId(id)}
           />
         )}
         {activeStep === Step.DASHBOARD && (
-          <Dashboard projects={projects} />
+          <Dashboard projects={filteredProjects} />
         )}
       </main>
     </div>

@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Project } from '../types';
-import { Activity, CheckCircle2, Eye, MessageSquare, Send, Calendar } from 'lucide-react';
+import { Activity, CheckCircle2, Eye, MessageSquare, Send, Calendar, PencilLine, Info } from 'lucide-react';
 import DetailsModal from './DetailsModal';
 
 interface StepFourProps {
   project: Project | null;
   projects: Project[];
   onUpdate: (id: string, updates: Partial<Project>) => void;
-  onSelect: (id: string, step: number) => void;
+  onSelect: (id: string) => void;
 }
 
 const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSelect }) => {
@@ -18,10 +18,6 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
   useEffect(() => {
     setNotes(project?.followUpNotes || '');
   }, [project]);
-
-  const handleSaveNotes = () => {
-    if (project) onUpdate(project.id, { followUpNotes: notes });
-  };
 
   const handleStatusChange = (status: any) => {
     if (project) onUpdate(project.id, { status });
@@ -36,7 +32,7 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
           </div>
           <div>
             <h2 className="text-3xl font-black text-gray-800 italic uppercase tracking-tighter leading-none">SEGUIMIENTO PROYECTO</h2>
-            <p className="text-gray-400 font-bold italic text-sm mt-1 uppercase">Control de Montajes y Post-Venta</p>
+            <p className="text-gray-400 font-bold italic text-sm mt-1 uppercase">Paso 4: Control de Montajes y Post-Venta</p>
           </div>
         </div>
         
@@ -63,22 +59,22 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black text-gray-400 uppercase mr-2">Estado Seguimiento:</span>
+                <span className="text-[10px] font-black text-gray-400 uppercase mr-2">Estado del Proyecto:</span>
                 <select 
                   value={project.status || 'En Curso'}
                   onChange={(e) => handleStatusChange(e.target.value)}
                   className="bg-gray-50 border-none rounded-xl px-4 py-2 text-xs font-black uppercase outline-none focus:ring-2 focus:ring-[#669900]/20"
                 >
-                  <option value="En Curso">En Curso</option>
-                  <option value="Gestionado">Terminado</option>
-                  <option value="Anulado">Incidencia</option>
+                  <option value="En Curso">En Curso / Montaje</option>
+                  <option value="Gestionado">Finalizado OK</option>
+                  <option value="Anulado">Incidencia / Anulado</option>
                 </select>
               </div>
             </div>
             
             <div className="space-y-4">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-2">
-                <MessageSquare className="w-3 h-3" /> Bitácora de Seguimiento
+                <MessageSquare className="w-3 h-3 text-red-500" /> Bitácora de Seguimiento e Incidencias
               </label>
               <div className="relative">
                 <textarea 
@@ -91,7 +87,7 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
                   className="w-full h-48 p-6 border-2 border-gray-50 rounded-[2rem] bg-gray-50/50 outline-none focus:border-[#669900] focus:bg-white transition-all text-sm font-medium resize-none shadow-inner"
                 />
                 <div className="absolute bottom-6 right-6 flex items-center gap-3">
-                  <span className="text-[10px] font-bold text-gray-300 italic">Los cambios se guardan automáticamente</span>
+                  <span className="text-[10px] font-bold text-gray-300 italic">Guardado automático activo</span>
                   <div className="p-2 bg-[#669900] text-white rounded-xl shadow-lg">
                     <CheckCircle2 className="w-4 h-4" />
                   </div>
@@ -109,15 +105,15 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
 
       <div className="space-y-4">
         <h3 className="text-xl font-black text-gray-800 flex items-center gap-2 px-4 italic uppercase tracking-tight">
-          PROYECTOS EN FASE DE MONTAJE <span className="text-gray-300 font-medium">({projects.length})</span>
+          PROYECTOS EN SEGUIMIENTO <span className="text-gray-300 font-medium">({projects.length})</span>
         </h3>
         <div className="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-gray-50/50 border-b">
+            <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Instalador</th>
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Fecha Inicio</th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">F. Instalación</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado</th>
                 <th className="px-8 py-5"></th>
               </tr>
@@ -146,7 +142,7 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
                       </span>
                     </td>
                     <td className="px-8 py-6 text-right">
-                       <button onClick={() => onSelect(p.id, 4)} className="p-3 text-gray-300 hover:text-[#669900] bg-gray-50 rounded-2xl transition-all shadow-sm"><Activity className="w-5 h-5" /></button>
+                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-[#669900] rounded-2xl border border-gray-100 hover:border-[#669900]/30 transition-all"><PencilLine className="w-5 h-5" /></button>
                     </td>
                   </tr>
                 ))

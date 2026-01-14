@@ -1,14 +1,27 @@
 
 import React, { useState } from 'react';
-import { Search, MapPin } from 'lucide-react';
-import { Project } from '../types';
+import { Search, MapPin, Filter, Calendar, User } from 'lucide-react';
+// Fix: Import LEROY_MERLIN_LOGO from '../constants' as it is not exported from '../types'
+import { Project, COLLABORATORS } from '../types';
+import { LEROY_MERLIN_LOGO } from '../constants';
 
 interface HeaderProps {
   projects: Project[];
   onSelectProject: (id: string, step: number) => void;
+  filterCollab: string;
+  setFilterCollab: (v: string) => void;
+  filterStart: string;
+  setFilterStart: (v: string) => void;
+  filterEnd: string;
+  setFilterEnd: (v: string) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ projects, onSelectProject }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  projects, onSelectProject, 
+  filterCollab, setFilterCollab, 
+  filterStart, setFilterStart, 
+  filterEnd, setFilterEnd 
+}) => {
   const [query, setQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
 
@@ -20,72 +33,76 @@ const Header: React.FC<HeaderProps> = ({ projects, onSelectProject }) => {
       )
     : [];
 
-  const handleResultClick = (id: string, step: number) => {
-    onSelectProject(id, step);
-    setQuery('');
-    setShowResults(false);
-  };
-
   return (
-    <header className="bg-white border-b h-[72px] sticky top-0 z-50 flex items-center px-4 md:px-8 shadow-sm">
-      <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-4">
-        <div className="flex items-center">
-          <span className="text-xl md:text-3xl font-black text-[#669900] tracking-tighter whitespace-nowrap cursor-default select-none">
-            LEROY MERLIN
-          </span>
-          <div className="hidden md:block h-8 w-[1px] bg-gray-200 ml-6 mr-6"></div>
-          <h1 className="hidden xl:block text-lg font-bold text-gray-800">
-            Gestión de Proyectos
-          </h1>
+    <header className="bg-white border-b sticky top-0 z-[60] shadow-md">
+      {/* Top Bar: Logo & Search */}
+      <div className="h-[72px] px-4 md:px-8 flex items-center justify-between gap-6 max-w-7xl mx-auto w-full">
+        <div className="flex items-center gap-4">
+          <img src={LEROY_MERLIN_LOGO} alt="LM" className="h-10 w-auto" />
+          <div className="flex flex-col">
+            <span className="text-2xl font-black text-[#669900] tracking-tighter leading-none italic">LEROY MERLIN</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cocinas • Panel Gestor</span>
+          </div>
         </div>
 
-        <div className="flex-1 max-w-xl relative">
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-[#669900]" />
-            <input 
-              type="text"
-              placeholder="Buscar por nombre, teléfono o presupuesto..."
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setShowResults(true);
-              }}
-              onFocus={() => setShowResults(true)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent border focus:bg-white focus:border-[#669900] rounded-full outline-none transition-all text-sm"
-            />
-          </div>
-
+        <div className="flex-1 max-lg relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-[#669900]" />
+          <input 
+            type="text"
+            placeholder="Buscar por cliente, teléfono o presupuesto..."
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setShowResults(true); }}
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl outline-none focus:bg-white focus:ring-2 focus:ring-[#669900]/20 transition-all text-sm font-medium"
+          />
           {showResults && filteredResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border overflow-hidden z-50 max-h-80 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fade-in">
               {filteredResults.map(p => (
                 <button
                   key={p.id}
-                  onClick={() => handleResultClick(p.id, p.currentStep)}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center justify-between border-b last:border-0"
+                  onClick={() => { onSelectProject(p.id, p.currentStep); setQuery(''); setShowResults(false); }}
+                  className="w-full text-left px-5 py-4 hover:bg-gray-50 flex items-center justify-between border-b last:border-0 transition-colors"
                 >
                   <div>
-                    <p className="font-semibold text-gray-900">{p.clientName || 'Sin nombre'}</p>
-                    <p className="text-xs text-gray-500">{p.phone || 'Sin teléfono'} • {p.store}</p>
+                    <p className="font-bold text-gray-900">{p.clientName}</p>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{p.phone} • Paso {p.currentStep}</p>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className="px-2 py-1 bg-green-50 text-green-700 text-[10px] uppercase font-bold rounded-md">
-                      Paso {p.currentStep}
-                    </span>
-                    {p.budgetNumber && (
-                      <span className="text-[10px] text-gray-400 mt-1">
-                        #{p.budgetNumber}
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-xs font-black text-[#669900] italic">#{p.id.substr(0,4)}</span>
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        <div className="hidden lg:flex items-center space-x-2 text-gray-500 text-sm">
+        <div className="hidden lg:flex items-center gap-3 bg-green-50 px-4 py-2 rounded-2xl border border-green-100">
           <MapPin className="w-4 h-4 text-[#669900]" />
-          <span className="font-medium">Tienda Gandia 047</span>
+          <span className="text-xs font-black text-[#669900] uppercase tracking-tighter italic">Gandia 047</span>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="bg-gray-50/50 border-t px-4 md:px-8 py-3 flex items-center justify-center gap-6 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-2">
+          <User className="w-3 h-3 text-gray-400" />
+          <select 
+            value={filterCollab} 
+            onChange={(e) => setFilterCollab(e.target.value)}
+            className="bg-white border rounded-xl px-3 py-1.5 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[#669900]/20"
+          >
+            <option value="all">TODOS LOS COLABORADORES</option>
+            {COLLABORATORS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+
+        <div className="h-4 w-[1px] bg-gray-200 hidden sm:block"></div>
+
+        <div className="flex items-center gap-2">
+          <Calendar className="w-3 h-3 text-gray-400" />
+          <div className="flex items-center gap-2 bg-white border rounded-xl px-3 py-1 text-[10px] font-black uppercase">
+            <span className="text-gray-300">DESDE:</span>
+            <input type="date" value={filterStart} onChange={(e) => setFilterStart(e.target.value)} className="outline-none" />
+            <span className="text-gray-300 ml-2">HASTA:</span>
+            <input type="date" value={filterEnd} onChange={(e) => setFilterEnd(e.target.value)} className="outline-none" />
+          </div>
         </div>
       </div>
     </header>
