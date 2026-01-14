@@ -26,8 +26,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
     approxBudget: 0,
     step2Collaborator: '',
     step1Completed: false,
-    step2Completed: false,
-    step3Completed: false,
+    currentStep: 1
   };
 
   const [formData, setFormData] = useState<Partial<Project>>(emptyForm);
@@ -75,8 +74,6 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
         id: newId,
         currentStep: 2,
         step1Completed: true,
-        step2Completed: false,
-        step3Completed: false,
       });
     }
     onStepChange(Step.PRESUPUESTO);
@@ -99,7 +96,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
               <h2 className="text-3xl font-black text-gray-800 tracking-tighter italic uppercase leading-none">
                 {project ? 'EDITAR ACOGIDA' : 'NUEVA ACOGIDA'}
               </h2>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Primer contacto con el cliente</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Paso 1: Captación inicial</p>
             </div>
           </div>
           {project && (
@@ -111,7 +108,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
                 <Eye className="w-5 h-5" /> VER FICHA INTEGRAL
               </button>
               <button onClick={() => onSelect('')} className="px-6 py-2.5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all">
-                NUEVA ALTA
+                CANCELAR EDICIÓN
               </button>
             </div>
           )}
@@ -127,7 +124,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
 
           <div className="space-y-1.5">
             <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${errors.includes('clientName') ? 'text-red-500' : 'text-gray-400'}`}>Nombre Completo *</label>
-            <input type="text" name="clientName" value={formData.clientName || ''} onChange={handleChange} placeholder="Ej: Juan Pérez..." className={`w-full p-4 bg-gray-50 rounded-2xl border-2 outline-none transition-all text-sm font-bold ${errors.includes('clientName') ? 'border-red-500 bg-red-50' : 'border-transparent focus:ring-2 focus:ring-[#669900]/20'}`} />
+            <input type="text" name="clientName" value={formData.clientName || ''} onChange={handleChange} placeholder="Nombre y Apellidos" className={`w-full p-4 bg-gray-50 rounded-2xl border-2 outline-none transition-all text-sm font-bold ${errors.includes('clientName') ? 'border-red-500 bg-red-50' : 'border-transparent focus:ring-2 focus:ring-[#669900]/20'}`} />
           </div>
 
           <div className="space-y-1.5">
@@ -148,7 +145,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
           <div className="space-y-1.5">
             <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${errors.includes('step2Collaborator') ? 'text-red-500' : 'text-gray-400'}`}>Responsable Paso 2 *</label>
             <select name="step2Collaborator" value={formData.step2Collaborator || ''} onChange={handleChange} className={`w-full p-4 bg-gray-50 rounded-2xl border-2 outline-none transition-all text-sm font-bold uppercase italic ${errors.includes('step2Collaborator') ? 'border-red-500 bg-red-50' : 'border-transparent focus:ring-2 focus:ring-[#669900]/20'}`}>
-              <option value="">SELECCIONA RESPONSABLE...</option>
+              <option value="">SELECCIONA VENDEDOR...</option>
               {COLLABORATORS.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -174,23 +171,23 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
         </div>
 
         {errors.length > 0 && (
-          <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-3 animate-bounce">
+          <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-red-500" />
-            <span className="text-xs font-black text-red-600 uppercase">Debes completar los campos marcados para avanzar</span>
+            <span className="text-xs font-black text-red-600 uppercase italic">Completa todos los campos obligatorios para avanzar al Paso 2</span>
           </div>
         )}
 
         <div className="mt-12 pt-10 border-t flex flex-col sm:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4 bg-gray-50 px-6 py-3 rounded-2xl border border-gray-100">
              <Info className="w-4 h-4 text-gray-400" />
-             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">(*) Requeridos para validación de fase</span>
+             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Los datos se guardan en el Excel del Paso 1</span>
           </div>
           
           <button 
             onClick={handleSaveAndAdvance}
-            className="px-12 py-5 bg-[#669900] text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl flex items-center gap-4 group hover:bg-[#558000] shadow-[#669900]/20"
+            className="px-12 py-5 bg-[#669900] text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl flex items-center gap-4 group hover:bg-[#558000]"
           >
-            GUARDAR Y PASAR A PRESUPUESTO
+            GUARDAR Y PASAR AL PASO 2 (PRESUPUESTO)
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
@@ -199,35 +196,35 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
       <div className="space-y-6">
         <h3 className="text-xl font-black text-gray-800 italic uppercase px-4 flex items-center gap-3">
           <span className="bg-[#669900] text-white px-3 py-1 rounded-xl not-italic">{projects.length}</span>
-          COCINAS PENDIENTES DE ACOGIDA (PASO 1)
+          COCINAS ESPERANDO ACOGIDA
         </h3>
         <div className="bg-white rounded-[2.5rem] border border-gray-100 overflow-hidden shadow-sm overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-gray-50 border-b text-[10px] font-black text-gray-400 uppercase tracking-widest">
               <tr>
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Colaborador</th>
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Importe Aprox</th>
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Responsable P2</th>
-                <th className="px-8 py-5"></th>
+                <th className="px-8 py-5">Cliente / Tel</th>
+                <th className="px-8 py-5">Colaborador Alta</th>
+                <th className="px-8 py-5">Presupuesto</th>
+                <th className="px-8 py-5">Vendedor Paso 2</th>
+                <th className="px-8 py-5 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {projects.length === 0 ? (
-                <tr><td colSpan={5} className="px-8 py-16 text-center text-gray-400 font-bold uppercase italic text-sm">No hay registros pendientes en este paso</td></tr>
+                <tr><td colSpan={5} className="px-8 py-16 text-center text-gray-400 font-bold uppercase italic text-sm">No hay proyectos retenidos en el Paso 1</td></tr>
               ) : (
                 projects.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-8 py-6">
-                      <div className="font-black text-gray-900 group-hover:text-[#669900] transition-colors">{p.clientName}</div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase">{p.phone}</div>
+                      <div className="font-black text-gray-900 group-hover:text-[#669900]">{p.clientName}</div>
+                      <div className="text-[10px] text-gray-400 font-bold italic">{p.phone}</div>
                     </td>
                     <td className="px-8 py-6 text-xs font-bold text-gray-500 uppercase italic">{p.ldapCollaborator}</td>
                     <td className="px-8 py-6 text-sm font-black text-[#669900] italic">{p.approxBudget?.toLocaleString()} €</td>
-                    <td className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase">{p.step2Collaborator || 'Sin definir'}</td>
+                    <td className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase">{p.step2Collaborator || 'Sin asignar'}</td>
                     <td className="px-8 py-6 text-right space-x-2">
-                       <button onClick={() => openDetails(p)} title="Ver Ficha Integral" className="p-3 bg-white text-[#669900] hover:bg-[#669900] hover:text-white rounded-2xl border border-[#669900]/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
-                       <button onClick={() => onSelect(p.id)} title="Editar Expediente" className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
+                       <button onClick={() => openDetails(p)} className="p-3 bg-white text-[#669900] hover:bg-[#669900] hover:text-white rounded-2xl border border-[#669900]/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
+                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
                     </td>
                   </tr>
                 ))

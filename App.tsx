@@ -37,8 +37,13 @@ const App: React.FC = () => {
       if (!response.ok) throw new Error('Error al leer datos');
       const remoteData = await response.json();
       if (Array.isArray(remoteData)) {
+        // Normalizamos datos para que funcionen con la lógica de la app
         const parsedData = remoteData.map((p: any) => ({
           ...p,
+          willReform: p.willReform === 'TRUE' || p.willReform === true,
+          willInstall: p.willInstall === 'TRUE' || p.willInstall === true,
+          handDrawnPlan: p.handDrawnPlan === 'TRUE' || p.handDrawnPlan === true,
+          measurementSent: p.measurementSent === 'TRUE' || p.measurementSent === true,
           budgetNotes: typeof p.budgetNotes === 'string' && p.budgetNotes ? JSON.parse(p.budgetNotes) : (p.budgetNotes || [])
         }));
         setProjects(parsedData);
@@ -54,6 +59,7 @@ const App: React.FC = () => {
   const syncToSheets = useCallback(async (project: Project) => {
     setSyncStatus('saving');
     try {
+      // Estructura EXACTA de 26 campos según tu definición
       const payload = {
         id: project.id,
         currentStep: project.currentStep,
@@ -64,16 +70,16 @@ const App: React.FC = () => {
         phone: project.phone,
         kitchenDatePrediction: project.kitchenDatePrediction,
         approxBudget: project.approxBudget,
-        willReform: project.willReform ? 'SI' : 'NO',
-        willInstall: project.willInstall ? 'SI' : 'NO',
+        willReform: project.willReform ? 'TRUE' : 'FALSE',
+        willInstall: project.willInstall ? 'TRUE' : 'FALSE',
         step2Collaborator: project.step2Collaborator,
         budgetNumber: project.budgetNumber || '',
         budgetDate: project.budgetDate || '',
         budgetType: project.budgetType || '',
         status: project.status || 'En Curso',
         totalAmount: project.totalAmount || 0,
-        handDrawnPlan: project.handDrawnPlan ? 'SI' : 'NO',
-        measurementSent: project.measurementSent ? 'SI' : 'NO',
+        handDrawnPlan: project.handDrawnPlan ? 'TRUE' : 'FALSE',
+        measurementSent: project.measurementSent ? 'TRUE' : 'FALSE',
         budgetNotes: project.budgetNotes ? JSON.stringify(project.budgetNotes) : '[]',
         driveLink: project.driveLink || '',
         closingDate: project.closingDate || '',
@@ -146,10 +152,9 @@ const App: React.FC = () => {
         setFilterEnd={setFilterEnd}
       />
 
-      {/* Menú de Pasos que ocupa el ancho completo */}
-      <nav className="bg-white border-b shadow-sm sticky top-[130px] z-40 w-full">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <div className="flex flex-1 items-center justify-between">
+      <nav className="bg-white border-b shadow-sm sticky top-[125px] z-40 w-full">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex flex-1 items-stretch">
             {[
               { id: Step.ACOGIDA, label: '1. Acogida' },
               { id: Step.PRESUPUESTO, label: '2. Presupuesto' },
@@ -160,9 +165,9 @@ const App: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => { setActiveStep(tab.id); setSelectedProjectId(null); }}
-                className={`flex-1 flex items-center justify-center space-x-2 py-5 border-b-2 font-black transition-all whitespace-nowrap text-xs md:text-sm uppercase tracking-tighter italic ${
+                className={`flex-1 flex items-center justify-center space-x-3 py-6 border-b-2 font-black transition-all whitespace-nowrap text-xs md:text-sm uppercase tracking-tighter italic border-r last:border-r-0 ${
                   activeStep === tab.id 
-                    ? 'border-[#669900] text-[#669900] bg-green-50/30' 
+                    ? 'border-[#669900] text-[#669900] bg-green-50/50' 
                     : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -171,22 +176,18 @@ const App: React.FC = () => {
               </button>
             ))}
           </div>
-
-          <div className="flex items-center gap-3 ml-6 pl-6 border-l">
-            {syncStatus === 'saving' && <span className="text-[9px] font-black text-blue-500 animate-pulse uppercase">Sincronizando...</span>}
-            {syncStatus === 'success' && <span className="text-[9px] font-black text-[#669900] flex items-center gap-1 uppercase"><CheckCircle2 className="w-3 h-3"/> Excel OK</span>}
-            <button 
-              onClick={fetchDataFromSheets}
-              disabled={isSyncing}
-              className="p-2 rounded-full bg-gray-100 text-gray-400 hover:text-[#669900] transition-all"
-            >
-              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            </button>
+          
+          <div className="flex items-center gap-4 px-6 border-l h-14">
+             {syncStatus === 'saving' && <span className="text-[9px] font-black text-blue-500 animate-pulse">SINC...</span>}
+             {syncStatus === 'success' && <span className="text-[9px] font-black text-[#669900]"><CheckCircle2 className="w-3 h-3 inline mr-1"/>OK</span>}
+             <button onClick={fetchDataFromSheets} disabled={isSyncing} className="p-2 rounded-xl bg-gray-100 text-gray-400 hover:text-[#669900] transition-all">
+               <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+             </button>
           </div>
         </div>
       </nav>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8 animate-fade-in">
+      <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8">
         {activeStep === Step.ACOGIDA && (
           <StepOne 
             project={currentProject} 

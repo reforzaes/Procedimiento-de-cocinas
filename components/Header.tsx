@@ -33,20 +33,20 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-white border-b sticky top-0 z-[60] shadow-md">
-      {/* Top Bar: Solo Texto */}
+      {/* Top Bar: Estilo Corporativo Leroy Merlin sin Imagen */}
       <div className="h-[72px] px-4 md:px-8 flex items-center justify-between gap-6 max-w-7xl mx-auto w-full">
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
-            <span className="text-2xl font-black text-[#669900] tracking-tighter leading-none italic">LEROY MERLIN</span>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cocinas • Panel Gestor de Proyectos</span>
+            <span className="text-3xl font-black text-[#669900] tracking-tighter leading-none italic uppercase">LEROY MERLIN</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5 border-t border-gray-100 pt-0.5">Gestor de Proyectos de Cocinas</span>
           </div>
         </div>
 
-        <div className="flex-1 max-lg relative group">
+        <div className="flex-1 max-w-xl relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-[#669900]" />
           <input 
             type="text"
-            placeholder="Buscar por cliente, teléfono o presupuesto..."
+            placeholder="Buscar por cliente o presupuesto..."
             value={query}
             onChange={(e) => { setQuery(e.target.value); setShowResults(true); }}
             className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl outline-none focus:bg-white focus:ring-2 focus:ring-[#669900]/20 transition-all text-sm font-medium"
@@ -72,7 +72,7 @@ const Header: React.FC<HeaderProps> = ({
 
         <div className="hidden lg:flex items-center gap-3 bg-green-50 px-4 py-2 rounded-2xl border border-green-100">
           <MapPin className="w-4 h-4 text-[#669900]" />
-          <span className="text-xs font-black text-[#669900] uppercase tracking-tighter italic">Gandia 047</span>
+          <span className="text-xs font-black text-[#669900] uppercase tracking-tighter italic leading-none pt-0.5">Gandia 047</span>
         </div>
       </div>
 
