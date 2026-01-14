@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Project, INSTALLERS } from '../types';
+import { Project, INSTALLERS, Step } from '../types';
 import { AlertCircle, CalendarRange, ExternalLink, Eye, ArrowRight, PencilLine, Info } from 'lucide-react';
 import DetailsModal from './DetailsModal';
 
@@ -9,9 +9,10 @@ interface StepThreeProps {
   projects: Project[];
   onUpdate: (id: string, updates: Partial<Project>) => void;
   onSelect: (id: string) => void;
+  onStepChange: (step: Step) => void;
 }
 
-const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSelect }) => {
+const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSelect, onStepChange }) => {
   const emptyForm: Partial<Project> = {
     driveLink: '',
     closingDate: new Date().toISOString().split('T')[0],
@@ -26,7 +27,11 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
   const [modalProject, setModalProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    setFormData(project || emptyForm);
+    if (project) {
+      setFormData(project);
+    } else {
+      setFormData(emptyForm);
+    }
     setErrors([]);
   }, [project]);
 
@@ -53,6 +58,7 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
     if (project) {
       onUpdate(project.id, { ...formData, step3Completed: true, currentStep: 4 });
     }
+    onStepChange(Step.SEGUIMIENTO);
   };
 
   const openDetails = (p: Project) => {

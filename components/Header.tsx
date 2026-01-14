@@ -1,9 +1,7 @@
 
 import React, { useState } from 'react';
-import { Search, MapPin, Filter, Calendar, User } from 'lucide-react';
-// Fix: Import LEROY_MERLIN_LOGO from '../constants' as it is not exported from '../types'
+import { Search, MapPin, Calendar, User } from 'lucide-react';
 import { Project, COLLABORATORS } from '../types';
-import { LEROY_MERLIN_LOGO } from '../constants';
 
 interface HeaderProps {
   projects: Project[];
@@ -35,13 +33,12 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="bg-white border-b sticky top-0 z-[60] shadow-md">
-      {/* Top Bar: Logo & Search */}
+      {/* Top Bar: Solo Texto */}
       <div className="h-[72px] px-4 md:px-8 flex items-center justify-between gap-6 max-w-7xl mx-auto w-full">
         <div className="flex items-center gap-4">
-          <img src={LEROY_MERLIN_LOGO} alt="LM" className="h-10 w-auto" />
           <div className="flex flex-col">
             <span className="text-2xl font-black text-[#669900] tracking-tighter leading-none italic">LEROY MERLIN</span>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cocinas • Panel Gestor</span>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cocinas • Panel Gestor de Proyectos</span>
           </div>
         </div>
 

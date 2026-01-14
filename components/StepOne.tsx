@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Project, COLLABORATORS, STORES } from '../types';
+import { Project, COLLABORATORS, STORES, Step } from '../types';
 import { AlertCircle, PlusCircle, ArrowRight, Eye, PencilLine, Info, CheckCircle2 } from 'lucide-react';
 import DetailsModal from './DetailsModal';
 
@@ -10,9 +10,10 @@ interface StepOneProps {
   onUpdate: (id: string, updates: Partial<Project>) => void;
   onCreate: (p: Project) => void;
   onSelect: (id: string) => void;
+  onStepChange: (step: Step) => void;
 }
 
-const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate, onSelect }) => {
+const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate, onSelect, onStepChange }) => {
   const emptyForm: Partial<Project> = {
     ldapCollaborator: COLLABORATORS[0],
     store: STORES[0],
@@ -35,7 +36,11 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
   const [modalProject, setModalProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    setFormData(project || emptyForm);
+    if (project) {
+      setFormData(project);
+    } else {
+      setFormData(emptyForm);
+    }
     setErrors([]);
   }, [project]);
 
@@ -62,7 +67,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
   const handleSaveAndAdvance = () => {
     if (!validate()) return;
     if (project) {
-      onUpdate(project.id, { ...formData, step1Completed: true, currentStep: Math.max(project.currentStep, 2) });
+      onUpdate(project.id, { ...formData, step1Completed: true, currentStep: 2 });
     } else {
       const newId = Math.random().toString(36).substr(2, 9);
       onCreate({
@@ -70,9 +75,11 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
         id: newId,
         currentStep: 2,
         step1Completed: true,
+        step2Completed: false,
+        step3Completed: false,
       });
-      setFormData(emptyForm);
     }
+    onStepChange(Step.PRESUPUESTO);
   };
 
   const openDetails = (p: Project) => {
@@ -192,7 +199,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
       <div className="space-y-6">
         <h3 className="text-xl font-black text-gray-800 italic uppercase px-4 flex items-center gap-3">
           <span className="bg-[#669900] text-white px-3 py-1 rounded-xl not-italic">{projects.length}</span>
-          COCINAS EN ESTA FASE
+          COCINAS PENDIENTES DE ACOGIDA (PASO 1)
         </h3>
         <div className="bg-white rounded-[2.5rem] border border-gray-100 overflow-hidden shadow-sm overflow-x-auto">
           <table className="w-full text-left">
@@ -201,13 +208,13 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Colaborador</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Importe Aprox</th>
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado Paso 1</th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Responsable P2</th>
                 <th className="px-8 py-5"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {projects.length === 0 ? (
-                <tr><td colSpan={5} className="px-8 py-16 text-center text-gray-400 font-bold uppercase italic text-sm">No hay registros en esta fase</td></tr>
+                <tr><td colSpan={5} className="px-8 py-16 text-center text-gray-400 font-bold uppercase italic text-sm">No hay registros pendientes en este paso</td></tr>
               ) : (
                 projects.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50 transition-colors group">
@@ -217,13 +224,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
                     </td>
                     <td className="px-8 py-6 text-xs font-bold text-gray-500 uppercase italic">{p.ldapCollaborator}</td>
                     <td className="px-8 py-6 text-sm font-black text-[#669900] italic">{p.approxBudget?.toLocaleString()} €</td>
-                    <td className="px-8 py-6">
-                      <span className={`px-3 py-1 text-[9px] font-black uppercase rounded-full border ${
-                        p.step1Completed ? 'bg-green-50 text-green-700 border-green-100' : 'bg-amber-50 text-amber-700 border-amber-100'
-                      }`}>
-                        {p.step1Completed ? 'COMPLETO' : 'PENDIENTE'}
-                      </span>
-                    </td>
+                    <td className="px-8 py-6 text-[10px] font-bold text-gray-400 uppercase">{p.step2Collaborator || 'Sin definir'}</td>
                     <td className="px-8 py-6 text-right space-x-2">
                        <button onClick={() => openDetails(p)} title="Ver Ficha Integral" className="p-3 bg-white text-[#669900] hover:bg-[#669900] hover:text-white rounded-2xl border border-[#669900]/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
                        <button onClick={() => onSelect(p.id)} title="Editar Expediente" className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>

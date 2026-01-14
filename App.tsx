@@ -19,7 +19,6 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
-  // Filtros Globales de Cabecera
   const [filterCollab, setFilterCollab] = useState<string>('all');
   const [filterStart, setFilterStart] = useState<string>('');
   const [filterEnd, setFilterEnd] = useState<string>('');
@@ -38,8 +37,12 @@ const App: React.FC = () => {
       if (!response.ok) throw new Error('Error al leer datos');
       const remoteData = await response.json();
       if (Array.isArray(remoteData)) {
-        setProjects(remoteData);
-        localStorage.setItem('lm-projects', JSON.stringify(remoteData));
+        const parsedData = remoteData.map((p: any) => ({
+          ...p,
+          budgetNotes: typeof p.budgetNotes === 'string' && p.budgetNotes ? JSON.parse(p.budgetNotes) : (p.budgetNotes || [])
+        }));
+        setProjects(parsedData);
+        localStorage.setItem('lm-projects', JSON.stringify(parsedData));
       }
     } catch (err) {
       console.error("Fetch error:", err);
@@ -51,11 +54,33 @@ const App: React.FC = () => {
   const syncToSheets = useCallback(async (project: Project) => {
     setSyncStatus('saving');
     try {
-      // Preparamos el objeto para que coincida exactamente con las columnas de Excel
-      // Convertimos arrays a strings para evitar problemas en Sheets
       const payload = {
-        ...project,
-        budgetNotes: project.budgetNotes ? JSON.stringify(project.budgetNotes) : ''
+        id: project.id,
+        currentStep: project.currentStep,
+        ldapCollaborator: project.ldapCollaborator,
+        store: project.store,
+        receptionDate: project.receptionDate,
+        clientName: project.clientName,
+        phone: project.phone,
+        kitchenDatePrediction: project.kitchenDatePrediction,
+        approxBudget: project.approxBudget,
+        willReform: project.willReform ? 'SI' : 'NO',
+        willInstall: project.willInstall ? 'SI' : 'NO',
+        step2Collaborator: project.step2Collaborator,
+        budgetNumber: project.budgetNumber || '',
+        budgetDate: project.budgetDate || '',
+        budgetType: project.budgetType || '',
+        status: project.status || 'En Curso',
+        totalAmount: project.totalAmount || 0,
+        handDrawnPlan: project.handDrawnPlan ? 'SI' : 'NO',
+        measurementSent: project.measurementSent ? 'SI' : 'NO',
+        budgetNotes: project.budgetNotes ? JSON.stringify(project.budgetNotes) : '[]',
+        driveLink: project.driveLink || '',
+        closingDate: project.closingDate || '',
+        woMeasurement: project.woMeasurement || '',
+        installer: project.installer || '',
+        installationDate: project.installationDate || '',
+        followUpNotes: project.followUpNotes || ''
       };
 
       await fetch(APPS_SCRIPT_URL, {
@@ -67,7 +92,6 @@ const App: React.FC = () => {
       setSyncStatus('success');
       setTimeout(() => setSyncStatus('idle'), 2000);
     } catch (err) {
-      console.error("Sync error:", err);
       setSyncStatus('error');
     }
   }, []);
@@ -92,7 +116,6 @@ const App: React.FC = () => {
     setProjects(updated);
     localStorage.setItem('lm-projects', JSON.stringify(updated));
     syncToSheets(newProject);
-    setSelectedProjectId(null); 
   };
 
   const filteredProjects = useMemo(() => {
@@ -123,9 +146,10 @@ const App: React.FC = () => {
         setFilterEnd={setFilterEnd}
       />
 
-      <nav className="bg-white border-b shadow-sm sticky top-[130px] z-40">
+      {/* Menú de Pasos que ocupa el ancho completo */}
+      <nav className="bg-white border-b shadow-sm sticky top-[130px] z-40 w-full">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <div className="flex space-x-4 md:space-x-8 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-1 items-center justify-between">
             {[
               { id: Step.ACOGIDA, label: '1. Acogida' },
               { id: Step.PRESUPUESTO, label: '2. Presupuesto' },
@@ -136,10 +160,10 @@ const App: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => { setActiveStep(tab.id); setSelectedProjectId(null); }}
-                className={`flex items-center space-x-2 py-4 border-b-2 font-black transition-all whitespace-nowrap text-xs md:text-sm uppercase tracking-tighter italic ${
+                className={`flex-1 flex items-center justify-center space-x-2 py-5 border-b-2 font-black transition-all whitespace-nowrap text-xs md:text-sm uppercase tracking-tighter italic ${
                   activeStep === tab.id 
-                    ? 'border-[#669900] text-[#669900]' 
-                    : 'border-transparent text-gray-400 hover:text-gray-600'
+                    ? 'border-[#669900] text-[#669900] bg-green-50/30' 
+                    : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 {STEP_ICONS[tab.id as keyof typeof STEP_ICONS]}
@@ -148,13 +172,12 @@ const App: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
-            {syncStatus === 'saving' && <span className="text-[9px] font-black text-blue-500 animate-pulse uppercase">Guardando...</span>}
+          <div className="flex items-center gap-3 ml-6 pl-6 border-l">
+            {syncStatus === 'saving' && <span className="text-[9px] font-black text-blue-500 animate-pulse uppercase">Sincronizando...</span>}
             {syncStatus === 'success' && <span className="text-[9px] font-black text-[#669900] flex items-center gap-1 uppercase"><CheckCircle2 className="w-3 h-3"/> Excel OK</span>}
             <button 
               onClick={fetchDataFromSheets}
               disabled={isSyncing}
-              title="Actualizar desde Google Sheets"
               className="p-2 rounded-full bg-gray-100 text-gray-400 hover:text-[#669900] transition-all"
             >
               <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -167,33 +190,36 @@ const App: React.FC = () => {
         {activeStep === Step.ACOGIDA && (
           <StepOne 
             project={currentProject} 
-            projects={filteredProjects.filter(p => p.currentStep >= 1)}
+            projects={filteredProjects.filter(p => p.currentStep === 1)}
             onUpdate={updateProject}
             onCreate={createProject}
             onSelect={(id) => setSelectedProjectId(id)}
+            onStepChange={setActiveStep}
           />
         )}
         {activeStep === Step.PRESUPUESTO && (
           <StepTwo 
             project={currentProject} 
-            projects={filteredProjects.filter(p => p.currentStep >= 2)}
+            projects={filteredProjects.filter(p => p.currentStep === 2)}
             onUpdate={updateProject}
             onCreate={createProject}
             onSelect={(id) => setSelectedProjectId(id)}
+            onStepChange={setActiveStep}
           />
         )}
         {activeStep === Step.VISITA && (
           <StepThree 
             project={currentProject} 
-            projects={filteredProjects.filter(p => p.currentStep >= 3)}
+            projects={filteredProjects.filter(p => p.currentStep === 3)}
             onUpdate={updateProject}
             onSelect={(id) => setSelectedProjectId(id)}
+            onStepChange={setActiveStep}
           />
         )}
         {activeStep === Step.SEGUIMIENTO && (
           <StepFour 
             project={currentProject} 
-            projects={filteredProjects.filter(p => p.currentStep >= 4)}
+            projects={filteredProjects.filter(p => p.currentStep === 4)}
             onUpdate={updateProject}
             onSelect={(id) => setSelectedProjectId(id)}
           />

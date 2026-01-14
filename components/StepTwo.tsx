@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Project, COLLABORATORS, STATUS_OPTIONS, BudgetNote } from '../types';
-import { AlertCircle, FilePlus, Eye, MessageSquare, Send, ArrowRight, PencilLine, Info, Filter, CheckCircle2 } from 'lucide-react';
+import { Project, COLLABORATORS, STATUS_OPTIONS, BudgetNote, Step } from '../types';
+import { AlertCircle, FilePlus, Eye, Send, ArrowRight, PencilLine, Info, Filter, CheckCircle2 } from 'lucide-react';
 import DetailsModal from './DetailsModal';
 
 interface StepTwoProps {
@@ -10,9 +10,10 @@ interface StepTwoProps {
   onUpdate: (id: string, updates: Partial<Project>) => void;
   onCreate: (p: Project) => void;
   onSelect: (id: string) => void;
+  onStepChange: (step: Step) => void;
 }
 
-const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate, onSelect }) => {
+const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate, onSelect, onStepChange }) => {
   const emptyForm: Partial<Project> = {
     budgetNumber: '',
     budgetDate: new Date().toISOString().split('T')[0],
@@ -26,22 +27,25 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
     phone: '',
     ldapCollaborator: COLLABORATORS[0],
     receptionDate: new Date().toISOString().split('T')[0],
+    step2Collaborator: '',
     step1Completed: false,
     step3Completed: false,
   };
 
   const [formData, setFormData] = useState<Partial<Project>>(emptyForm);
   const [errors, setErrors] = useState<string[]>([]);
-  const [newNote, setNewNote] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [modalProject, setModalProject] = useState<Project | null>(null);
 
-  // Filtros locales para la tabla
   const [tableFilterCollab, setTableFilterCollab] = useState<string>('all');
   const [tableFilterStatus, setTableFilterStatus] = useState<string>('all');
 
   useEffect(() => {
-    setFormData(project || emptyForm);
+    if (project) {
+      setFormData(project);
+    } else {
+      setFormData(emptyForm);
+    }
     setErrors([]);
   }, [project]);
 
@@ -51,6 +55,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
     if (!formData.budgetNumber) newErrors.push('budgetNumber');
     if (!formData.budgetType) newErrors.push('budgetType');
     if (!formData.totalAmount || (formData.totalAmount || 0) <= 0) newErrors.push('totalAmount');
+    if (!formData.step2Collaborator) newErrors.push('step2Collaborator');
     setErrors(newErrors);
     return newErrors.length === 0;
   };
@@ -67,7 +72,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
   const handleSaveAndAdvance = () => {
     if (!validate()) return;
     if (project) {
-      onUpdate(project.id, { ...formData, step2Completed: true, currentStep: Math.max(project.currentStep, 3) });
+      onUpdate(project.id, { ...formData, step2Completed: true, currentStep: 3 });
     } else {
       const newId = Math.random().toString(36).substr(2, 9);
       onCreate({
@@ -76,22 +81,8 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
         currentStep: 3,
         step2Completed: true,
       });
-      setFormData(emptyForm);
     }
-  };
-
-  const handleAddNote = () => {
-    if (project && newNote.trim()) {
-      const note: BudgetNote = {
-        id: Math.random().toString(36).substr(2, 9),
-        date: new Date().toLocaleString(),
-        author: project.ldapCollaborator || 'Gestor',
-        text: newNote.trim()
-      };
-      const updatedNotes = [...(project.budgetNotes || []), note];
-      onUpdate(project.id, { budgetNotes: updatedNotes });
-      setNewNote('');
-    }
+    onStepChange(Step.VISITA);
   };
 
   const openDetails = (p: Project) => {
@@ -130,9 +121,6 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
               >
                 <Eye className="w-5 h-5" /> VER FICHA INTEGRAL
               </button>
-              <button onClick={() => onSelect('')} className="px-6 py-2.5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all">
-                NUEVO DISEÑO
-              </button>
             </div>
           )}
         </div>
@@ -141,6 +129,14 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
           <div className="space-y-1.5">
             <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${errors.includes('clientName') ? 'text-red-500' : 'text-gray-400'}`}>Cliente *</label>
             <input type="text" name="clientName" value={formData.clientName || ''} onChange={handleChange} placeholder="Nombre del cliente..." className={`w-full p-4 bg-gray-50 rounded-2xl border-2 outline-none transition-all text-sm font-bold ${errors.includes('clientName') ? 'border-red-500 bg-red-50' : 'border-transparent focus:ring-2 focus:ring-blue-500/20'}`} />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${errors.includes('step2Collaborator') ? 'text-red-500' : 'text-gray-400'}`}>Responsable Diseño (P2) *</label>
+            <select name="step2Collaborator" value={formData.step2Collaborator || ''} onChange={handleChange} className={`w-full p-4 bg-gray-50 rounded-2xl border-2 outline-none transition-all text-sm font-bold uppercase italic ${errors.includes('step2Collaborator') ? 'border-red-500 bg-red-50' : 'border-transparent focus:ring-2 focus:ring-blue-500/20'}`}>
+              <option value="">SELECCIONA RESPONSABLE...</option>
+              {COLLABORATORS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
 
           <div className="space-y-1.5">
@@ -164,11 +160,6 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
               {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
           </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Fecha Elaboración</label>
-            <input type="date" name="budgetDate" value={formData.budgetDate || ''} onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-500/20 text-sm" />
-          </div>
         </div>
 
         {errors.length > 0 && (
@@ -181,7 +172,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
         <div className="mt-12 pt-10 border-t flex flex-col sm:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4 bg-gray-50 px-6 py-3 rounded-2xl border border-gray-100">
              <Info className="w-4 h-4 text-gray-400" />
-             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">(*) Requeridos para validación</span>
+             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">(*) Requeridos para validación y avance</span>
           </div>
           
           <button 
@@ -198,7 +189,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4">
           <h3 className="text-xl font-black text-gray-800 italic uppercase flex items-center gap-3">
             <span className="bg-blue-600 text-white px-3 py-1 rounded-xl not-italic">{filteredProjects.length}</span>
-            COCINAS EN DISEÑO / PRESUPUESTO
+            COCINAS EN DISEÑO / PRESUPUESTO (PASO 2)
           </h3>
           <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border shadow-sm">
             <Filter className="w-4 h-4 text-gray-400 ml-2" />
@@ -227,7 +218,6 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
               <tr>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Nº Presu</th>
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Importe Final</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Responsable</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado</th>
                 <th className="px-8 py-5"></th>
@@ -235,16 +225,15 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filteredProjects.length === 0 ? (
-                <tr><td colSpan={6} className="px-8 py-16 text-center text-gray-400 font-bold uppercase italic text-sm">No hay resultados con estos filtros</td></tr>
+                <tr><td colSpan={5} className="px-8 py-16 text-center text-gray-400 font-bold uppercase italic text-sm">No hay resultados en esta fase</td></tr>
               ) : (
                 filteredProjects.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-8 py-6">
                       <div className="font-black text-gray-900 group-hover:text-blue-600 transition-colors">{p.clientName}</div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase italic">{p.budgetType || 'Sin definir gama'}</div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase italic">{p.phone}</div>
                     </td>
                     <td className="px-8 py-6 text-xs font-bold text-blue-600">{p.budgetNumber || 'PENDIENTE'}</td>
-                    <td className="px-8 py-6 text-sm font-black text-[#669900] italic">{p.totalAmount?.toLocaleString()} €</td>
                     <td className="px-8 py-6 text-[10px] font-bold text-gray-500 uppercase">{p.step2Collaborator?.split(' ')[1] || 'Sin asignar'}</td>
                     <td className="px-8 py-6">
                        <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-full ${
