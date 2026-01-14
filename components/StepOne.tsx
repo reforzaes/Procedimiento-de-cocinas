@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Project, COLLABORATORS, STORES } from '../types';
-import { CheckCircle2, AlertCircle, PlusCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle2, AlertCircle, PlusCircle, ArrowRight, Lock } from 'lucide-react';
 
 interface StepOneProps {
   project: Project | null;
@@ -55,7 +55,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
       data.clientName && 
       data.phone && 
       data.kitchenDatePrediction && 
-      data.approxBudget &&
+      (data.approxBudget !== undefined && data.approxBudget > 0) &&
       data.ldapCollaborator &&
       data.store &&
       data.step2Collaborator
@@ -63,12 +63,11 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
   };
 
   const handleSave = () => {
+    const completed = isFormComplete(formData);
     if (project) {
-      const completed = isFormComplete(formData);
       onUpdate(project.id, { ...formData, step1Completed: completed });
     } else {
       const newId = Math.random().toString(36).substr(2, 9);
-      const completed = isFormComplete(formData);
       onCreate({
         ...(formData as Project),
         id: newId,
@@ -83,8 +82,11 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
   const handlePassToStepTwo = () => {
     const completed = isFormComplete(formData);
     
+    // REQUISITO: No podrá pasar al paso dos si no contiene los datos del paso uno completos
+    if (!completed) return;
+
     if (project) {
-      onUpdate(project.id, { ...formData, step1Completed: completed, currentStep: 2 });
+      onUpdate(project.id, { ...formData, step1Completed: true, currentStep: 2 });
       onSelect(project.id, 2);
     } else {
       const newId = Math.random().toString(36).substr(2, 9);
@@ -92,19 +94,20 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
         ...(formData as Project),
         id: newId,
         currentStep: 2,
-        step1Completed: completed,
+        step1Completed: true,
         step2Completed: false,
         step3Completed: false,
-        clientName: formData.clientName || 'Cliente Autogenerado',
       };
       onCreate(newProject);
       onSelect(newId, 2);
     }
   };
 
+  const complete = isFormComplete(formData);
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+    <div className="space-y-8">
+      <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-50 rounded-xl">
@@ -113,7 +116,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
             <h2 className="text-2xl font-black text-gray-800 tracking-tight italic">ACOGIDA CLIENTE</h2>
           </div>
           <span className="text-xs font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full uppercase">
-            ID: {project?.id || 'Nuevo'}
+            {project ? `ID: ${project.id}` : 'Nuevo Proyecto'}
           </span>
         </div>
 
@@ -149,7 +152,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
               name="receptionDate"
               readOnly
               value={formData.receptionDate || ''}
-              className="w-full p-3 bg-gray-100 rounded-xl cursor-not-allowed outline-none text-sm text-gray-400"
+              className="w-full p-3 bg-gray-100 rounded-xl cursor-not-allowed outline-none text-sm text-gray-400 font-bold"
             />
           </div>
 
@@ -158,7 +161,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
             <input 
               type="text"
               name="clientName"
-              placeholder="Nombre del cliente..."
+              placeholder="Nombre y apellidos..."
               value={formData.clientName || ''}
               onChange={handleChange}
               className="w-full p-3 border-b-2 border-transparent bg-gray-50 rounded-xl outline-none focus:border-[#669900] focus:bg-white transition-all text-sm font-bold"
@@ -166,11 +169,11 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Teléfono (Buscable)</label>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Teléfono</label>
             <input 
               type="tel"
               name="phone"
-              placeholder="Número de contacto..."
+              placeholder="Ej: 600000000"
               value={formData.phone || ''}
               onChange={handleChange}
               className="w-full p-3 border-b-2 border-transparent bg-gray-50 rounded-xl outline-none focus:border-[#669900] focus:bg-white transition-all text-sm font-bold"
@@ -189,7 +192,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Presupuesto Estimado</label>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Presupuesto Aprox.</label>
             <div className="relative">
               <input 
                 type="number"
@@ -197,14 +200,14 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
                 placeholder="0"
                 value={formData.approxBudget || ''}
                 onChange={handleChange}
-                className="w-full p-3 pl-8 border-b-2 border-transparent bg-gray-50 rounded-xl outline-none focus:border-[#669900] focus:bg-white transition-all text-sm font-bold"
+                className="w-full p-3 pl-8 border-b-2 border-transparent bg-gray-50 rounded-xl outline-none focus:border-[#669900] focus:bg-white transition-all text-sm font-black"
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Agendar Paso 2 a:</label>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Responsable Paso 2</label>
             <select 
               name="step2Collaborator"
               value={formData.step2Collaborator || ''}
@@ -250,15 +253,15 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
 
         <div className="mt-12 pt-8 border-t flex flex-col sm:flex-row gap-6 justify-between items-center">
           <div className="flex items-center gap-4">
-            {isFormComplete(formData) ? (
-              <div className="flex items-center space-x-2 text-[#669900] bg-green-50 px-4 py-2 rounded-2xl">
+            {complete ? (
+              <div className="flex items-center space-x-2 text-[#669900] bg-green-50 px-4 py-2 rounded-2xl border border-green-100">
                 <CheckCircle2 className="w-5 h-5" />
-                <span className="text-sm font-bold uppercase tracking-tight">Expediente Completo</span>
+                <span className="text-sm font-bold uppercase tracking-tight">Listo para avanzar</span>
               </div>
             ) : (
-              <div className="flex items-center space-x-2 text-amber-600 bg-amber-50 px-4 py-2 rounded-2xl">
+              <div className="flex items-center space-x-2 text-amber-600 bg-amber-50 px-4 py-2 rounded-2xl border border-amber-100">
                 <AlertCircle className="w-5 h-5" />
-                <span className="text-sm font-bold uppercase tracking-tight italic">Paso omitible (Datos incompletos)</span>
+                <span className="text-sm font-bold uppercase tracking-tight italic">Faltan datos obligatorios</span>
               </div>
             )}
           </div>
@@ -268,47 +271,53 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
               onClick={handleSave}
               className="px-8 py-3 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all font-bold text-sm shadow-lg shadow-gray-100"
             >
-              Guardar Progreso
+              Guardar Borrador
             </button>
             <button 
               onClick={handlePassToStepTwo}
-              className="px-8 py-3 bg-[#669900] text-white rounded-2xl hover:bg-[#558000] transition-all font-bold text-sm shadow-xl shadow-green-100 flex items-center gap-2 group"
+              disabled={!complete}
+              className={`px-8 py-3 rounded-2xl transition-all font-bold text-sm flex items-center gap-2 group shadow-xl ${
+                complete 
+                  ? 'bg-[#669900] text-white hover:bg-[#558000] shadow-green-100' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+              }`}
             >
+              {!complete && <Lock className="w-4 h-4" />}
               Pasar al Paso 2
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              {complete && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
             </button>
           </div>
         </div>
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-xl font-black text-gray-800 flex items-center gap-2 px-2">
-          CLIENTES EN COLA <span className="text-gray-300 font-medium">({projects.length})</span>
+        <h3 className="text-xl font-black text-gray-800 flex items-center gap-2 px-2 italic uppercase tracking-tight">
+          HISTORIAL DE ACOGIDAS <span className="text-gray-300 font-medium">({projects.length})</span>
         </h3>
-        <div className="bg-white rounded-3xl border overflow-hidden shadow-sm">
+        <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
           <table className="w-full text-left">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-gray-50/50 border-b">
               <tr>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cliente / Teléfono</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cliente</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Colaborador</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tienda</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Estado</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Estado Paso 1</th>
                 <th className="px-6 py-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-gray-50">
               {projects.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-400 italic font-medium">
-                    Bandeja de entrada vacía
+                    No hay registros guardados en esta fase
                   </td>
                 </tr>
               ) : (
                 projects.map(p => (
-                  <tr key={p.id} className="hover:bg-gray-50 group transition-colors">
+                  <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-5">
                       <div className="font-bold text-gray-900">{p.clientName || 'S/N'}</div>
-                      <div className="text-[10px] text-gray-400 font-bold">{p.phone || 'S/T'}</div>
+                      <div className="text-[10px] text-gray-400 font-bold tracking-widest">{p.phone}</div>
                     </td>
                     <td className="px-6 py-5 text-sm font-medium text-gray-600">{p.ldapCollaborator}</td>
                     <td className="px-6 py-5 text-sm font-medium text-gray-600">{p.store}</td>
@@ -316,14 +325,13 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
                       <span className={`px-3 py-1 text-[10px] font-black uppercase rounded-full ${
                         p.step1Completed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
                       }`}>
-                        {p.step1Completed ? 'COMPLETO' : 'PENDIENTE'}
+                        {p.step1Completed ? 'COMPLETO' : 'INCOMPLETO'}
                       </span>
                     </td>
                     <td className="px-6 py-5 text-right">
                       <button 
                         onClick={() => onSelect(p.id, 1)}
                         className="p-2 text-gray-400 hover:text-[#669900] hover:bg-green-50 rounded-xl transition-all"
-                        title="Gestionar"
                       >
                         <ArrowRight className="w-5 h-5" />
                       </button>

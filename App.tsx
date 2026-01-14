@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Project, Step, COLLABORATORS, STORES } from './types';
+import { Project, Step } from './types';
 import Header from './components/Header';
 import StepOne from './components/StepOne';
 import StepTwo from './components/StepTwo';
@@ -8,56 +8,67 @@ import StepThree from './components/StepThree';
 import StepFour from './components/StepFour';
 import Dashboard from './components/Dashboard';
 import { STEP_ICONS } from './constants';
-import { RefreshCw, Database } from 'lucide-react';
+import { RefreshCw, Database, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
-// URL DE TU GOOGLE APPS SCRIPT VINCULADA
-const APPS_SCRIPT_URL = 'https://script.google.com/a/macros/leroymerlin.es/s/AKfycbzfeRNbXeF2sQrAe2s5KQWNhIgX4WSCD4MeuTH2PyTWbFM7AgzIUZVZ2PekNTCgs2JX8w/exec'; 
+// NUEVA URL PROPORCIONADA POR EL USUARIO
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycIG428mdwrOxhd9MMee-qoPHZeguYsPFkgswAZjxh6DJazHkghYHp0bvkpa7hjykd/exec'; 
 
 const App: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeStep, setActiveStep] = useState<Step>(Step.ACOGIDA);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncSuccess, setSyncSuccess] = useState(false);
+  const [authError, setAuthError] = useState(false);
 
-  // Cargar datos iniciales
   useEffect(() => {
     const saved = localStorage.getItem('lm-projects');
     if (saved) {
       setProjects(JSON.parse(saved));
     }
-    
-    if (APPS_SCRIPT_URL) {
-      fetchDataFromSheets();
-    }
+    fetchDataFromSheets();
   }, []);
 
   const fetchDataFromSheets = async () => {
     if (!APPS_SCRIPT_URL) return;
     setIsSyncing(true);
+    setAuthError(false);
     try {
       const response = await fetch(APPS_SCRIPT_URL);
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) setAuthError(true);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const remoteData = await response.json();
       if (Array.isArray(remoteData)) {
         setProjects(remoteData);
         localStorage.setItem('lm-projects', JSON.stringify(remoteData));
+        showSyncSuccess();
       }
     } catch (error) {
       console.error("Error fetching from Sheets:", error);
+      setAuthError(true);
     } finally {
       setIsSyncing(false);
     }
   };
 
+  const showSyncSuccess = () => {
+    setSyncSuccess(true);
+    setTimeout(() => setSyncSuccess(false), 3000);
+  };
+
   const syncProjectToSheets = async (project: Project) => {
     if (!APPS_SCRIPT_URL) return;
     try {
-      // Usamos mode: 'no-cors' si hay problemas de CORS, pero para POST con JSON 
-      // lo ideal es que el script esté bien configurado. Apps Script suele redirigir.
+      // Enviamos como text/plain para evitar problemas de CORS pre-flight
       await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', // Evita errores de CORS en redirecciones de Google, aunque no permite leer la respuesta
+        mode: 'no-cors', 
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(project),
       });
+      showSyncSuccess();
     } catch (error) {
       console.error("Error syncing to Sheets:", error);
     }
@@ -98,14 +109,11 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header 
-        projects={projects} 
-        onSelectProject={handleProjectSelect} 
-      />
+      <Header projects={projects} onSelectProject={handleProjectSelect} />
 
       <nav className="bg-white border-b shadow-sm sticky top-[72px] z-40">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <div className="flex space-x-8 overflow-x-auto">
+          <div className="flex space-x-8 overflow-x-auto scrollbar-hide">
             {[
               { id: Step.ACOGIDA, label: 'Paso 1: Acogida' },
               { id: Step.PRESUPUESTO, label: 'Paso 2: Presupuesto' },
@@ -128,7 +136,17 @@ const App: React.FC = () => {
             ))}
           </div>
 
-          {APPS_SCRIPT_URL ? (
+          <div className="flex items-center gap-4">
+            {syncSuccess && (
+              <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-[#669900] bg-green-50 px-3 py-1 rounded-full border border-green-100 animate-fade-in">
+                <CheckCircle2 className="w-3 h-3" /> DATOS SINCRONIZADOS
+              </div>
+            )}
+            {authError && (
+              <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-red-500 bg-red-50 px-3 py-1 rounded-full border border-red-100 animate-pulse">
+                <AlertTriangle className="w-3 h-3" /> REVISA ACCESO AL EXCEL
+              </div>
+            )}
             <button 
               onClick={fetchDataFromSheets}
               disabled={isSyncing}
@@ -137,17 +155,13 @@ const App: React.FC = () => {
               }`}
             >
               <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'SINCRO...' : 'SINCRONIZAR'}
+              {isSyncing ? 'ACTUALIZANDO...' : 'SINCRONIZAR'}
             </button>
-          ) : (
-            <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-amber-500 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
-              <Database className="w-3 h-3" /> MODO LOCAL (SIN EXCEL)
-            </div>
-          )}
+          </div>
         </div>
       </nav>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-8 animate-fade-in">
         {activeStep === Step.ACOGIDA && (
           <StepOne 
             project={currentProject} 
