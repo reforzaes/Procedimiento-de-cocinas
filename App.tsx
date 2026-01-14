@@ -19,7 +19,7 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
-  // Filtros Globales
+  // Filtros Globales de Cabecera
   const [filterCollab, setFilterCollab] = useState<string>('all');
   const [filterStart, setFilterStart] = useState<string>('');
   const [filterEnd, setFilterEnd] = useState<string>('');
@@ -51,15 +51,23 @@ const App: React.FC = () => {
   const syncToSheets = useCallback(async (project: Project) => {
     setSyncStatus('saving');
     try {
+      // Preparamos el objeto para que coincida exactamente con las columnas de Excel
+      // Convertimos arrays a strings para evitar problemas en Sheets
+      const payload = {
+        ...project,
+        budgetNotes: project.budgetNotes ? JSON.stringify(project.budgetNotes) : ''
+      };
+
       await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors', 
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(project),
+        body: JSON.stringify(payload),
       });
       setSyncStatus('success');
       setTimeout(() => setSyncStatus('idle'), 2000);
     } catch (err) {
+      console.error("Sync error:", err);
       setSyncStatus('error');
     }
   }, []);
@@ -141,11 +149,12 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {syncStatus === 'saving' && <span className="text-[9px] font-black text-blue-500 animate-pulse">SINCRO...</span>}
-            {syncStatus === 'success' && <span className="text-[9px] font-black text-[#669900] flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> OK</span>}
+            {syncStatus === 'saving' && <span className="text-[9px] font-black text-blue-500 animate-pulse uppercase">Guardando...</span>}
+            {syncStatus === 'success' && <span className="text-[9px] font-black text-[#669900] flex items-center gap-1 uppercase"><CheckCircle2 className="w-3 h-3"/> Excel OK</span>}
             <button 
               onClick={fetchDataFromSheets}
               disabled={isSyncing}
+              title="Actualizar desde Google Sheets"
               className="p-2 rounded-full bg-gray-100 text-gray-400 hover:text-[#669900] transition-all"
             >
               <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -158,7 +167,6 @@ const App: React.FC = () => {
         {activeStep === Step.ACOGIDA && (
           <StepOne 
             project={currentProject} 
-            // Mostramos los que han pasado por aquí o están aquí
             projects={filteredProjects.filter(p => p.currentStep >= 1)}
             onUpdate={updateProject}
             onCreate={createProject}
@@ -168,7 +176,6 @@ const App: React.FC = () => {
         {activeStep === Step.PRESUPUESTO && (
           <StepTwo 
             project={currentProject} 
-            // Mostramos los que han llegado a presupuesto
             projects={filteredProjects.filter(p => p.currentStep >= 2)}
             onUpdate={updateProject}
             onCreate={createProject}

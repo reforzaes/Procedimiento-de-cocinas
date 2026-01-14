@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Project, COLLABORATORS, STATUS_OPTIONS, BudgetNote } from '../types';
-import { CheckCircle2, AlertCircle, FilePlus, Eye, MessageSquare, Send, ArrowRight, PencilLine, Info, Filter } from 'lucide-react';
+import { AlertCircle, FilePlus, Eye, MessageSquare, Send, ArrowRight, PencilLine, Info, Filter, CheckCircle2 } from 'lucide-react';
 import DetailsModal from './DetailsModal';
 
 interface StepTwoProps {
@@ -25,7 +25,9 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
     clientName: '',
     phone: '',
     ldapCollaborator: COLLABORATORS[0],
-    receptionDate: new Date().toISOString().split('T')[0]
+    receptionDate: new Date().toISOString().split('T')[0],
+    step1Completed: false,
+    step3Completed: false,
   };
 
   const [formData, setFormData] = useState<Partial<Project>>(emptyForm);
@@ -71,10 +73,8 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
       onCreate({
         ...(formData as Project),
         id: newId,
-        currentStep: 3, // Avanzamos directamente
-        step1Completed: false,
+        currentStep: 3,
         step2Completed: true,
-        step3Completed: false,
       });
       setFormData(emptyForm);
     }
@@ -128,7 +128,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
                 onClick={() => openDetails(project)} 
                 className="flex items-center gap-3 px-8 py-3.5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-blue-500/20"
               >
-                <Eye className="w-5 h-5" /> VER FICHA COMPLETA
+                <Eye className="w-5 h-5" /> VER FICHA INTEGRAL
               </button>
               <button onClick={() => onSelect('')} className="px-6 py-2.5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all">
                 NUEVO DISEÑO
@@ -198,7 +198,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4">
           <h3 className="text-xl font-black text-gray-800 italic uppercase flex items-center gap-3">
             <span className="bg-blue-600 text-white px-3 py-1 rounded-xl not-italic">{filteredProjects.length}</span>
-            COCINAS EN DISEÑO
+            COCINAS EN DISEÑO / PRESUPUESTO
           </h3>
           <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border shadow-sm">
             <Filter className="w-4 h-4 text-gray-400 ml-2" />
@@ -207,7 +207,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
               onChange={(e) => setTableFilterCollab(e.target.value)}
               className="bg-gray-50 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500/20"
             >
-              <option value="all">TODOS LOS RESPONSABLES</option>
+              <option value="all">FILTRAR RESPONSABLE</option>
               {COLLABORATORS.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <select 
@@ -215,7 +215,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
               onChange={(e) => setTableFilterStatus(e.target.value)}
               className="bg-gray-50 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500/20"
             >
-              <option value="all">TODOS LOS ESTADOS</option>
+              <option value="all">FILTRAR ESTADO</option>
               {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
           </div>
@@ -245,7 +245,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
                     </td>
                     <td className="px-8 py-6 text-xs font-bold text-blue-600">{p.budgetNumber || 'PENDIENTE'}</td>
                     <td className="px-8 py-6 text-sm font-black text-[#669900] italic">{p.totalAmount?.toLocaleString()} €</td>
-                    <td className="px-8 py-6 text-[10px] font-bold text-gray-500 uppercase">{p.step2Collaborator?.split(' ')[1]}</td>
+                    <td className="px-8 py-6 text-[10px] font-bold text-gray-500 uppercase">{p.step2Collaborator?.split(' ')[1] || 'Sin asignar'}</td>
                     <td className="px-8 py-6">
                        <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-full ${
                           p.status === 'Gestionado' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
@@ -254,8 +254,8 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
                         </span>
                     </td>
                     <td className="px-8 py-6 text-right space-x-2">
-                       <button onClick={() => openDetails(p)} className="p-3 bg-white text-blue-600 hover:bg-blue-600 hover:text-white rounded-2xl border border-blue-500/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
-                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
+                       <button onClick={() => openDetails(p)} title="Ver Ficha Integral" className="p-3 bg-white text-blue-600 hover:bg-blue-600 hover:text-white rounded-2xl border border-blue-500/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
+                       <button onClick={() => onSelect(p.id)} title="Editar Expediente" className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
                     </td>
                   </tr>
                 ))

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Project } from '../types';
-import { Activity, CheckCircle2, Eye, MessageSquare, Send, Calendar, PencilLine, Info, Clock } from 'lucide-react';
+import { Activity, Eye, MessageSquare, Calendar, PencilLine, CheckCircle2 } from 'lucide-react';
 import DetailsModal from './DetailsModal';
 
 interface StepFourProps {
@@ -148,8 +148,8 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
                       </span>
                     </td>
                     <td className="px-8 py-6 text-right space-x-2">
-                       <button onClick={() => openDetails(p)} className="p-3 bg-white text-[#669900] hover:bg-[#669900] hover:text-white rounded-2xl border border-[#669900]/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
-                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
+                       <button onClick={() => openDetails(p)} title="Ver Ficha Integral" className="p-3 bg-white text-[#669900] hover:bg-[#669900] hover:text-white rounded-2xl border border-[#669900]/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
+                       <button onClick={() => onSelect(p.id)} title="Editar Expediente" className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
                     </td>
                   </tr>
                 ))

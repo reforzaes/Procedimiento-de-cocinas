@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Project, INSTALLERS } from '../types';
-import { CheckCircle2, AlertCircle, CalendarRange, ExternalLink, Eye, ArrowRight, PencilLine, Info } from 'lucide-react';
+import { AlertCircle, CalendarRange, ExternalLink, Eye, ArrowRight, PencilLine, Info } from 'lucide-react';
 import DetailsModal from './DetailsModal';
 
 interface StepThreeProps {
@@ -81,7 +81,7 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
                 onClick={() => openDetails(project)} 
                 className="flex items-center gap-3 px-8 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-amber-500/20"
               >
-                <Eye className="w-5 h-5" /> VER FICHA COMPLETA
+                <Eye className="w-5 h-5" /> VER FICHA INTEGRAL
               </button>
               <button onClick={() => onSelect('')} className="px-6 py-2.5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all">
                 NUEVA AGENDA
@@ -126,14 +126,14 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
         {errors.length > 0 && (
           <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-3 animate-bounce">
             <AlertCircle className="w-5 h-5 text-red-500" />
-            <span className="text-xs font-black text-red-600 uppercase">Debes completar la agenda técnica</span>
+            <span className="text-xs font-black text-red-600 uppercase">Debes completar la agenda técnica para avanzar</span>
           </div>
         )}
 
         <div className="mt-12 pt-10 border-t flex flex-col sm:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4 bg-gray-50 px-6 py-3 rounded-2xl border border-gray-100">
              <Info className="w-4 h-4 text-gray-400" />
-             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">(*) Requeridos para agendar</span>
+             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">(*) Requeridos para agendar montaje</span>
           </div>
           
           <button 
@@ -173,8 +173,8 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
                     <td className="px-8 py-6 text-xs font-bold text-gray-600 uppercase italic">{p.installer || 'Sin asignar'}</td>
                     <td className="px-8 py-6 text-xs font-black text-[#669900]">{p.installationDate || '---'}</td>
                     <td className="px-8 py-6 text-right space-x-2">
-                       <button onClick={() => openDetails(p)} className="p-3 bg-white text-amber-600 hover:bg-amber-500 hover:text-white rounded-2xl border border-amber-500/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
-                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
+                       <button onClick={() => openDetails(p)} title="Ver Ficha Integral" className="p-3 bg-white text-amber-600 hover:bg-amber-500 hover:text-white rounded-2xl border border-amber-500/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
+                       <button onClick={() => onSelect(p.id)} title="Editar Expediente" className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
                     </td>
                   </tr>
                 ))

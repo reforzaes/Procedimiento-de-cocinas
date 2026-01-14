@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Project, COLLABORATORS, STORES } from '../types';
-import { CheckCircle2, AlertCircle, PlusCircle, ArrowRight, Eye, PencilLine, Info } from 'lucide-react';
+import { AlertCircle, PlusCircle, ArrowRight, Eye, PencilLine, Info, CheckCircle2 } from 'lucide-react';
 import DetailsModal from './DetailsModal';
 
 interface StepOneProps {
@@ -23,7 +23,10 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
     phone: '',
     kitchenDatePrediction: '',
     approxBudget: 0,
-    step2Collaborator: ''
+    step2Collaborator: '',
+    step1Completed: false,
+    step2Completed: false,
+    step3Completed: false,
   };
 
   const [formData, setFormData] = useState<Partial<Project>>(emptyForm);
@@ -65,14 +68,11 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
       onCreate({
         ...(formData as Project),
         id: newId,
-        currentStep: 2, // Avanzamos directamente al crear
+        currentStep: 2,
         step1Completed: true,
-        step2Completed: false,
-        step3Completed: false,
       });
       setFormData(emptyForm);
     }
-    // El cambio de pestaña visual lo maneja el usuario navegando a Paso 2
   };
 
   const openDetails = (p: Project) => {
@@ -101,10 +101,10 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
                 onClick={() => openDetails(project)} 
                 className="flex items-center gap-3 px-8 py-3.5 bg-[#669900] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-[#669900]/20"
               >
-                <Eye className="w-5 h-5" /> VER FICHA COMPLETA
+                <Eye className="w-5 h-5" /> VER FICHA INTEGRAL
               </button>
               <button onClick={() => onSelect('')} className="px-6 py-2.5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all">
-                NUEVA ACOGIDA
+                NUEVA ALTA
               </button>
             </div>
           )}
@@ -169,7 +169,7 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
         {errors.length > 0 && (
           <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-3 animate-bounce">
             <AlertCircle className="w-5 h-5 text-red-500" />
-            <span className="text-xs font-black text-red-600 uppercase">Debes completar los campos resaltados para avanzar</span>
+            <span className="text-xs font-black text-red-600 uppercase">Debes completar los campos marcados para avanzar</span>
           </div>
         )}
 
@@ -225,8 +225,8 @@ const StepOne: React.FC<StepOneProps> = ({ project, projects, onUpdate, onCreate
                       </span>
                     </td>
                     <td className="px-8 py-6 text-right space-x-2">
-                       <button onClick={() => openDetails(p)} className="p-3 bg-white text-[#669900] hover:bg-[#669900] hover:text-white rounded-2xl border border-[#669900]/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
-                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
+                       <button onClick={() => openDetails(p)} title="Ver Ficha Integral" className="p-3 bg-white text-[#669900] hover:bg-[#669900] hover:text-white rounded-2xl border border-[#669900]/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
+                       <button onClick={() => onSelect(p.id)} title="Editar Expediente" className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
                     </td>
                   </tr>
                 ))
