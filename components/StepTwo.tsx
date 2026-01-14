@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Project, COLLABORATORS, STATUS_OPTIONS, BudgetNote } from '../types';
-import { CheckCircle2, AlertCircle, FilePlus, Eye, MessageSquare, Send, ArrowRight, PencilLine, Info } from 'lucide-react';
+import { CheckCircle2, AlertCircle, FilePlus, Eye, MessageSquare, Send, ArrowRight, PencilLine, Info, Filter } from 'lucide-react';
 import DetailsModal from './DetailsModal';
 
 interface StepTwoProps {
@@ -22,7 +22,6 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
     handDrawnPlan: false,
     measurementSent: false,
     step2Completed: false,
-    // Datos básicos por si es creación directa
     clientName: '',
     phone: '',
     ldapCollaborator: COLLABORATORS[0],
@@ -33,6 +32,11 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
   const [errors, setErrors] = useState<string[]>([]);
   const [newNote, setNewNote] = useState('');
   const [showDetails, setShowDetails] = useState(false);
+  const [modalProject, setModalProject] = useState<Project | null>(null);
+
+  // Filtros locales para la tabla
+  const [tableFilterCollab, setTableFilterCollab] = useState<string>('all');
+  const [tableFilterStatus, setTableFilterStatus] = useState<string>('all');
 
   useEffect(() => {
     setFormData(project || emptyForm);
@@ -44,7 +48,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
     if (!formData.clientName) newErrors.push('clientName');
     if (!formData.budgetNumber) newErrors.push('budgetNumber');
     if (!formData.budgetType) newErrors.push('budgetType');
-    if (!formData.totalAmount || formData.totalAmount <= 0) newErrors.push('totalAmount');
+    if (!formData.totalAmount || (formData.totalAmount || 0) <= 0) newErrors.push('totalAmount');
     setErrors(newErrors);
     return newErrors.length === 0;
   };
@@ -58,30 +62,21 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
     if (project) onUpdate(project.id, { [name]: val });
   };
 
-  const handleSave = () => {
+  const handleSaveAndAdvance = () => {
     if (!validate()) return;
     if (project) {
-      onUpdate(project.id, { ...formData, step2Completed: true });
+      onUpdate(project.id, { ...formData, step2Completed: true, currentStep: Math.max(project.currentStep, 3) });
     } else {
       const newId = Math.random().toString(36).substr(2, 9);
       onCreate({
         ...(formData as Project),
         id: newId,
-        currentStep: 2,
-        step1Completed: false, // Creación directa
+        currentStep: 3, // Avanzamos directamente
+        step1Completed: false,
         step2Completed: true,
         step3Completed: false,
       });
       setFormData(emptyForm);
-    }
-  };
-
-  const handlePassToStepThree = () => {
-    if (!validate()) return;
-    if (project) {
-      onUpdate(project.id, { ...formData, step2Completed: true, currentStep: Math.max(project.currentStep, 3) });
-    } else {
-      handleSave();
     }
   };
 
@@ -99,6 +94,19 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
     }
   };
 
+  const openDetails = (p: Project) => {
+    setModalProject(p);
+    setShowDetails(true);
+  };
+
+  const filteredProjects = useMemo(() => {
+    return projects.filter(p => {
+      const matchCollab = tableFilterCollab === 'all' || p.step2Collaborator === tableFilterCollab;
+      const matchStatus = tableFilterStatus === 'all' || (p.status || 'En Curso') === tableFilterStatus;
+      return matchCollab && matchStatus;
+    });
+  }, [projects, tableFilterCollab, tableFilterStatus]);
+
   return (
     <div className="space-y-12 animate-fade-in">
       <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
@@ -111,16 +119,19 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
               <h2 className="text-3xl font-black text-gray-800 tracking-tighter italic uppercase leading-none">
                 {project ? 'EDITAR PRESUPUESTO' : 'NUEVO PRESUPUESTO'}
               </h2>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Paso 2: Elaboración técnica y económica</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Elaboración técnica y económica</p>
             </div>
           </div>
           {project && (
             <div className="flex gap-3">
-              <button onClick={() => setShowDetails(true)} className="flex items-center gap-2 px-6 py-2.5 bg-gray-100 text-gray-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all">
-                <Eye className="w-4 h-4" /> VER FICHA
+              <button 
+                onClick={() => openDetails(project)} 
+                className="flex items-center gap-3 px-8 py-3.5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-blue-500/20"
+              >
+                <Eye className="w-5 h-5" /> VER FICHA COMPLETA
               </button>
               <button onClick={() => onSelect('')} className="px-6 py-2.5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all">
-                LIMPIAR / NUEVA
+                NUEVO DISEÑO
               </button>
             </div>
           )}
@@ -158,100 +169,58 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Fecha Elaboración</label>
             <input type="date" name="budgetDate" value={formData.budgetDate || ''} onChange={handleChange} className="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-500/20 text-sm" />
           </div>
-
-          <div className="flex items-center gap-10 pt-4 lg:col-span-3">
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <div className="relative">
-                <input type="checkbox" name="handDrawnPlan" checked={!!formData.handDrawnPlan} onChange={handleChange} className="peer sr-only" />
-                <div className="w-7 h-7 bg-gray-100 rounded-lg border-2 border-transparent peer-checked:bg-blue-600 transition-all"></div>
-                <CheckCircle2 className="w-4 h-4 text-white absolute top-1.5 left-1.5 opacity-0 peer-checked:opacity-100 transition-all" />
-              </div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Plano Mano Alzada</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <div className="relative">
-                <input type="checkbox" name="measurementSent" checked={!!formData.measurementSent} onChange={handleChange} className="peer sr-only" />
-                <div className="w-7 h-7 bg-gray-100 rounded-lg border-2 border-transparent peer-checked:bg-blue-600 transition-all"></div>
-                <CheckCircle2 className="w-4 h-4 text-white absolute top-1.5 left-1.5 opacity-0 peer-checked:opacity-100 transition-all" />
-              </div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Medición Enviada</span>
-            </label>
-          </div>
         </div>
 
         {errors.length > 0 && (
           <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-3 animate-bounce">
             <AlertCircle className="w-5 h-5 text-red-500" />
-            <span className="text-xs font-black text-red-600 uppercase">Faltan campos críticos resaltados en rojo</span>
+            <span className="text-xs font-black text-red-600 uppercase">Debes completar los campos resaltados</span>
           </div>
         )}
-
-        <div className="mt-12 pt-10 border-t grid grid-cols-1 lg:grid-cols-2 gap-10">
-            <div className="space-y-4">
-              <h3 className="text-lg font-black text-gray-800 italic uppercase flex items-center gap-2"><MessageSquare className="w-5 h-5 text-gray-400" /> Notas de Gestión</h3>
-              <div className="relative">
-                <textarea 
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Añadir comentario sobre el avance del diseño..."
-                  className="w-full h-32 p-4 border-2 border-gray-100 rounded-3xl bg-gray-50 outline-none focus:border-blue-500 focus:bg-white transition-all text-sm resize-none font-medium shadow-inner"
-                />
-                <button 
-                  onClick={handleAddNote}
-                  disabled={!newNote.trim() || !project}
-                  className="absolute bottom-4 right-4 p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-gray-200 transition-all shadow-lg"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-[2rem] p-6 max-h-[160px] overflow-y-auto space-y-4 border border-gray-100 shadow-inner">
-              {project?.budgetNotes && project.budgetNotes.length > 0 ? (
-                [...project.budgetNotes].reverse().map(note => (
-                  <div key={note.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm transition-all hover:scale-[1.01]">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{note.author}</span>
-                      <span className="text-[9px] font-bold text-gray-400">{note.date}</span>
-                    </div>
-                    <p className="text-xs text-gray-700 leading-relaxed font-medium">{note.text}</p>
-                  </div>
-                ))
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-gray-300 text-xs italic py-4">No hay anotaciones de diseño</div>
-              )}
-            </div>
-        </div>
 
         <div className="mt-12 pt-10 border-t flex flex-col sm:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4 bg-gray-50 px-6 py-3 rounded-2xl border border-gray-100">
              <Info className="w-4 h-4 text-gray-400" />
-             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">(*) Requeridos para validación de presupuesto</span>
+             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">(*) Requeridos para validación</span>
           </div>
           
-          <div className="flex gap-4">
-             <button 
-                onClick={handleSave}
-                className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl"
-              >
-                SOLO GUARDAR
-              </button>
-              <button 
-                onClick={handlePassToStepThree}
-                className="px-12 py-4 bg-[#669900] text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl flex items-center gap-3 group hover:bg-[#558000] shadow-[#669900]/20"
-              >
-                FINALIZAR Y PASAR A CIERRE
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-          </div>
+          <button 
+            onClick={handleSaveAndAdvance}
+            className="px-12 py-5 bg-[#669900] text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl flex items-center gap-4 group hover:bg-[#558000] shadow-[#669900]/20"
+          >
+            GUARDAR Y PASAR A CIERRE
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </button>
         </div>
       </div>
 
       <div className="space-y-6">
-        <h3 className="text-xl font-black text-gray-800 italic uppercase px-4 flex items-center gap-3">
-          <span className="bg-blue-600 text-white px-3 py-1 rounded-xl not-italic">{projects.length}</span>
-          COOCINAS EN DISEÑO / PRESUPUESTO
-        </h3>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4">
+          <h3 className="text-xl font-black text-gray-800 italic uppercase flex items-center gap-3">
+            <span className="bg-blue-600 text-white px-3 py-1 rounded-xl not-italic">{filteredProjects.length}</span>
+            COCINAS EN DISEÑO
+          </h3>
+          <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border shadow-sm">
+            <Filter className="w-4 h-4 text-gray-400 ml-2" />
+            <select 
+              value={tableFilterCollab} 
+              onChange={(e) => setTableFilterCollab(e.target.value)}
+              className="bg-gray-50 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="all">TODOS LOS RESPONSABLES</option>
+              {COLLABORATORS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select 
+              value={tableFilterStatus} 
+              onChange={(e) => setTableFilterStatus(e.target.value)}
+              className="bg-gray-50 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="all">TODOS LOS ESTADOS</option>
+              {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+          </div>
+        </div>
+
         <div className="bg-white rounded-[2.5rem] border border-gray-100 overflow-hidden shadow-sm overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b">
@@ -259,15 +228,16 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Nº Presu</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Importe Final</th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Responsable</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Estado</th>
                 <th className="px-8 py-5"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {projects.length === 0 ? (
-                <tr><td colSpan={5} className="px-8 py-16 text-center text-gray-400 font-bold uppercase italic text-sm">No hay presupuestos activos</td></tr>
+              {filteredProjects.length === 0 ? (
+                <tr><td colSpan={6} className="px-8 py-16 text-center text-gray-400 font-bold uppercase italic text-sm">No hay resultados con estos filtros</td></tr>
               ) : (
-                projects.map(p => (
+                filteredProjects.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-8 py-6">
                       <div className="font-black text-gray-900 group-hover:text-blue-600 transition-colors">{p.clientName}</div>
@@ -275,6 +245,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
                     </td>
                     <td className="px-8 py-6 text-xs font-bold text-blue-600">{p.budgetNumber || 'PENDIENTE'}</td>
                     <td className="px-8 py-6 text-sm font-black text-[#669900] italic">{p.totalAmount?.toLocaleString()} €</td>
+                    <td className="px-8 py-6 text-[10px] font-bold text-gray-500 uppercase">{p.step2Collaborator?.split(' ')[1]}</td>
                     <td className="px-8 py-6">
                        <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-full ${
                           p.status === 'Gestionado' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
@@ -283,7 +254,8 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
                         </span>
                     </td>
                     <td className="px-8 py-6 text-right space-x-2">
-                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-blue-600 rounded-2xl border border-gray-100 hover:border-blue-600/30 transition-all"><PencilLine className="w-5 h-5" /></button>
+                       <button onClick={() => openDetails(p)} className="p-3 bg-white text-blue-600 hover:bg-blue-600 hover:text-white rounded-2xl border border-blue-500/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
+                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
                     </td>
                   </tr>
                 ))
@@ -292,7 +264,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ project, projects, onUpdate, onCreate
           </table>
         </div>
       </div>
-      {showDetails && project && <DetailsModal project={project} onClose={() => setShowDetails(false)} />}
+      {showDetails && modalProject && <DetailsModal project={modalProject} onClose={() => setShowDetails(false)} />}
     </div>
   );
 };

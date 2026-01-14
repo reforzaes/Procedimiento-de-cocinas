@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Project } from '../types';
-import { Activity, CheckCircle2, Eye, MessageSquare, Send, Calendar, PencilLine, Info } from 'lucide-react';
+import { Activity, CheckCircle2, Eye, MessageSquare, Send, Calendar, PencilLine, Info, Clock } from 'lucide-react';
 import DetailsModal from './DetailsModal';
 
 interface StepFourProps {
@@ -14,6 +14,7 @@ interface StepFourProps {
 const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSelect }) => {
   const [notes, setNotes] = useState('');
   const [showDetails, setShowDetails] = useState(false);
+  const [modalProject, setModalProject] = useState<Project | null>(null);
 
   useEffect(() => {
     setNotes(project?.followUpNotes || '');
@@ -21,6 +22,11 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
 
   const handleStatusChange = (status: any) => {
     if (project) onUpdate(project.id, { status });
+  };
+
+  const openDetails = (p: Project) => {
+    setModalProject(p);
+    setShowDetails(true);
   };
 
   return (
@@ -32,16 +38,16 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
           </div>
           <div>
             <h2 className="text-3xl font-black text-gray-800 italic uppercase tracking-tighter leading-none">SEGUIMIENTO PROYECTO</h2>
-            <p className="text-gray-400 font-bold italic text-sm mt-1 uppercase">Paso 4: Control de Montajes y Post-Venta</p>
+            <p className="text-gray-400 font-bold italic text-sm mt-1 uppercase">Control de Montajes y Post-Venta</p>
           </div>
         </div>
         
         {project && (
           <button 
-            onClick={() => setShowDetails(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all font-bold text-xs uppercase tracking-widest shadow-xl"
+            onClick={() => openDetails(project)}
+            className="flex items-center gap-3 px-10 py-4 bg-[#669900] text-white rounded-2xl hover:scale-105 transition-all font-black text-xs uppercase tracking-widest shadow-2xl shadow-[#669900]/20"
           >
-            <Eye className="w-4 h-4" /> VER FICHA INTEGRAL
+            <Eye className="w-5 h-5" /> VER FICHA INTEGRAL
           </button>
         )}
       </div>
@@ -99,7 +105,7 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
       ) : (
         <div className="bg-white p-20 rounded-[3rem] border-2 border-dashed border-gray-200 text-center flex flex-col items-center">
           <Activity className="w-16 h-16 text-gray-200 mb-4" />
-          <p className="text-gray-400 font-black italic uppercase tracking-widest text-sm">Selecciona un proyecto del listado inferior para gestionar el seguimiento</p>
+          <p className="text-gray-400 font-black italic uppercase tracking-widest text-sm">Selecciona un proyecto del listado inferior para gestionar</p>
         </div>
       )}
 
@@ -141,8 +147,9 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
                         {p.status || 'En Curso'}
                       </span>
                     </td>
-                    <td className="px-8 py-6 text-right">
-                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-[#669900] rounded-2xl border border-gray-100 hover:border-[#669900]/30 transition-all"><PencilLine className="w-5 h-5" /></button>
+                    <td className="px-8 py-6 text-right space-x-2">
+                       <button onClick={() => openDetails(p)} className="p-3 bg-white text-[#669900] hover:bg-[#669900] hover:text-white rounded-2xl border border-[#669900]/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
+                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
                     </td>
                   </tr>
                 ))
@@ -151,7 +158,7 @@ const StepFour: React.FC<StepFourProps> = ({ project, projects, onUpdate, onSele
           </table>
         </div>
       </div>
-      {showDetails && project && <DetailsModal project={project} onClose={() => setShowDetails(false)} />}
+      {showDetails && modalProject && <DetailsModal project={modalProject} onClose={() => setShowDetails(false)} />}
     </div>
   );
 };

@@ -23,6 +23,7 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
   const [formData, setFormData] = useState<Partial<Project>>(emptyForm);
   const [errors, setErrors] = useState<string[]>([]);
   const [showDetails, setShowDetails] = useState(false);
+  const [modalProject, setModalProject] = useState<Project | null>(null);
 
   useEffect(() => {
     setFormData(project || emptyForm);
@@ -47,11 +48,16 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
     if (project) onUpdate(project.id, { [name]: value });
   };
 
-  const handlePassToStepFour = () => {
+  const handleSaveAndAdvance = () => {
     if (!validate()) return;
     if (project) {
       onUpdate(project.id, { ...formData, step3Completed: true, currentStep: 4 });
     }
+  };
+
+  const openDetails = (p: Project) => {
+    setModalProject(p);
+    setShowDetails(true);
   };
 
   return (
@@ -66,16 +72,19 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
               <h2 className="text-3xl font-black text-gray-800 tracking-tighter italic uppercase leading-none">
                 {project ? 'GESTIÓN DE CIERRE' : 'NUEVO CIERRE'}
               </h2>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Paso 3: 2ª Visita, Medición y Agenda</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">2ª Visita, Medición y Agenda</p>
             </div>
           </div>
           {project && (
             <div className="flex gap-3">
-              <button onClick={() => setShowDetails(true)} className="flex items-center gap-2 px-6 py-2.5 bg-gray-100 text-gray-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all">
-                <Eye className="w-4 h-4" /> VER FICHA
+              <button 
+                onClick={() => openDetails(project)} 
+                className="flex items-center gap-3 px-8 py-3.5 bg-amber-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-amber-500/20"
+              >
+                <Eye className="w-5 h-5" /> VER FICHA COMPLETA
               </button>
               <button onClick={() => onSelect('')} className="px-6 py-2.5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all">
-                LIMPIAR / NUEVA
+                NUEVA AGENDA
               </button>
             </div>
           )}
@@ -117,22 +126,22 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
         {errors.length > 0 && (
           <div className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-3 animate-bounce">
             <AlertCircle className="w-5 h-5 text-red-500" />
-            <span className="text-xs font-black text-red-600 uppercase">Debes completar la agenda técnica para avanzar a seguimiento</span>
+            <span className="text-xs font-black text-red-600 uppercase">Debes completar la agenda técnica</span>
           </div>
         )}
 
         <div className="mt-12 pt-10 border-t flex flex-col sm:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4 bg-gray-50 px-6 py-3 rounded-2xl border border-gray-100">
              <Info className="w-4 h-4 text-gray-400" />
-             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">(*) Requeridos para coordinar el montaje</span>
+             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">(*) Requeridos para agendar</span>
           </div>
           
           <button 
-            onClick={handlePassToStepFour}
-            className="px-12 py-4 bg-[#669900] text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl flex items-center gap-3 group hover:bg-[#558000] shadow-[#669900]/20"
+            onClick={handleSaveAndAdvance}
+            className="px-12 py-5 bg-[#669900] text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl flex items-center gap-4 group hover:bg-[#558000] shadow-[#669900]/20"
           >
-            CONFIRMAR Y PASAR A MONTAJE
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            GUARDAR Y PASAR A SEGUIMIENTO
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
       </div>
@@ -140,7 +149,7 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
       <div className="space-y-6">
         <h3 className="text-xl font-black text-gray-800 italic uppercase px-4 flex items-center gap-3">
           <span className="bg-amber-500 text-white px-3 py-1 rounded-xl not-italic">{projects.length}</span>
-          COOCINAS EN CIERRE / AGENDA
+          COCINAS EN ESTA FASE
         </h3>
         <div className="bg-white rounded-[2.5rem] border border-gray-100 overflow-hidden shadow-sm overflow-x-auto">
           <table className="w-full text-left">
@@ -164,7 +173,8 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
                     <td className="px-8 py-6 text-xs font-bold text-gray-600 uppercase italic">{p.installer || 'Sin asignar'}</td>
                     <td className="px-8 py-6 text-xs font-black text-[#669900]">{p.installationDate || '---'}</td>
                     <td className="px-8 py-6 text-right space-x-2">
-                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-amber-600 rounded-2xl border border-gray-100 hover:border-amber-600/30 transition-all"><PencilLine className="w-5 h-5" /></button>
+                       <button onClick={() => openDetails(p)} className="p-3 bg-white text-amber-600 hover:bg-amber-500 hover:text-white rounded-2xl border border-amber-500/20 transition-all shadow-sm"><Eye className="w-5 h-5" /></button>
+                       <button onClick={() => onSelect(p.id)} className="p-3 bg-white text-gray-300 hover:text-gray-900 rounded-2xl border border-gray-100 transition-all"><PencilLine className="w-5 h-5" /></button>
                     </td>
                   </tr>
                 ))
@@ -173,7 +183,7 @@ const StepThree: React.FC<StepThreeProps> = ({ project, projects, onUpdate, onSe
           </table>
         </div>
       </div>
-      {showDetails && project && <DetailsModal project={project} onClose={() => setShowDetails(false)} />}
+      {showDetails && modalProject && <DetailsModal project={modalProject} onClose={() => setShowDetails(false)} />}
     </div>
   );
 };

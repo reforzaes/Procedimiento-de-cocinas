@@ -1,5 +1,6 @@
+
 import React, { useMemo, useState } from 'react';
-import { Project, STATUS_OPTIONS, COLLABORATORS, INSTALLERS } from '../types';
+import { Project, COLLABORATORS, INSTALLERS } from '../types';
 import { 
   PieChart, 
   Pie, 
@@ -24,7 +25,6 @@ import {
   Truck, 
   ArrowRightCircle,
   Clock,
-  // Added missing CheckCircle2 import
   CheckCircle2
 } from 'lucide-react';
 
@@ -45,18 +45,24 @@ const Dashboard: React.FC<DashboardProps> = ({ projects }) => {
   ], [projects]);
 
   // --- MÉTRICAS PASO 1 (Acogida) ---
-  const step1CollabData = useMemo(() => {
+  const step1Data = useMemo(() => {
     const step1Projects = projects.filter(p => p.currentStep >= 1);
-    return COLLABORATORS.map(col => ({
+    const collabRecap = COLLABORATORS.map(col => ({
       name: col.split(' ')[1],
-      total: step1Projects.filter(p => p.ldapCollaborator === col).length,
-      reformas: step1Projects.filter(p => p.ldapCollaborator === col && p.willReform).length,
-      instalaciones: step1Projects.filter(p => p.ldapCollaborator === col && p.willInstall).length
-    })).filter(d => d.total > 0);
+      count: step1Projects.filter(p => p.ldapCollaborator === col).length,
+    })).filter(d => d.count > 0);
+
+    const totals = {
+      reformas: step1Projects.filter(p => p.willReform).length,
+      instalaciones: step1Projects.filter(p => p.willInstall).length,
+      total: step1Projects.length
+    };
+
+    return { collabRecap, totals };
   }, [projects]);
 
   // --- MÉTRICAS PASO 2 (Presupuesto) ---
-  const step2StatusData = useMemo(() => {
+  const step2Data = useMemo(() => {
     const step2Projects = projects.filter(p => p.currentStep >= 2);
     const statuses = ['En Curso', 'Gestionando', 'Gestionado'];
     return statuses.map(s => ({
@@ -66,34 +72,31 @@ const Dashboard: React.FC<DashboardProps> = ({ projects }) => {
   }, [projects]);
 
   // --- MÉTRICAS PASO 3 (Cierre) ---
-  const step3VendedorData = useMemo(() => {
+  const step3Data = useMemo(() => {
     const step3Projects = projects.filter(p => p.currentStep >= 3);
-    return COLLABORATORS.map(col => ({
+    const sellerRecap = COLLABORATORS.map(col => ({
       name: col.split(' ')[1],
       value: step3Projects.filter(p => p.step2Collaborator === col).length
     })).filter(d => d.value > 0);
-  }, [projects]);
 
-  const step3InstallerData = useMemo(() => {
-    const step3Projects = projects.filter(p => p.currentStep >= 3);
-    return INSTALLERS.map(ins => ({
+    const installerRecap = INSTALLERS.map(ins => ({
       name: ins,
       value: step3Projects.filter(p => p.installer === ins).length
     })).filter(d => d.value > 0);
-  }, [projects]);
 
-  const step3VsStep4Data = useMemo(() => {
-    return [
-      { name: 'En Paso 3', value: projects.filter(p => p.currentStep === 3).length },
+    const flowCompare = [
+      { name: 'Pendientes Paso 3', value: projects.filter(p => p.currentStep === 3).length },
       { name: 'Pasadas a Paso 4', value: projects.filter(p => p.currentStep >= 4).length }
     ];
+
+    return { sellerRecap, installerRecap, flowCompare };
   }, [projects]);
 
   // --- MÉTRICAS PASO 4 (Seguimiento) ---
-  const step4StatusData = useMemo(() => {
+  const step4Data = useMemo(() => {
     const step4Projects = projects.filter(p => p.currentStep === 4);
     return [
-      { name: 'En Curso (Montaje)', value: step4Projects.filter(p => p.status !== 'Gestionado').length },
+      { name: 'En Curso / Montaje', value: step4Projects.filter(p => p.status !== 'Gestionado').length },
       { name: 'Terminadas OK', value: step4Projects.filter(p => p.status === 'Gestionado').length }
     ];
   }, [projects]);
@@ -102,67 +105,55 @@ const Dashboard: React.FC<DashboardProps> = ({ projects }) => {
     switch(selectedStep) {
       case 0: // GLOBAL
         return (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-fade-in">
+            <h3 className="text-xl font-black text-gray-800 italic uppercase flex items-center gap-3">
+              <LayoutDashboard className="w-6 h-6 text-[#669900]" /> Cocinas Pendientes por Fase
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {globalStepCounts.map((s, i) => (
-                <div key={i} className="bg-white p-6 rounded-[2.5rem] border shadow-sm group hover:scale-[1.02] transition-all">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{s.name}</p>
-                  <p className="text-4xl font-black italic tracking-tighter" style={{ color: s.color }}>{s.value}</p>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase mt-2">Cocinas pendientes</p>
+                <div key={i} className="bg-white p-8 rounded-[2.5rem] border shadow-sm group hover:scale-[1.02] transition-all flex flex-col items-center text-center">
+                  <div className="p-4 rounded-3xl mb-4" style={{ backgroundColor: `${s.color}15` }}>
+                     <Activity className="w-8 h-8" style={{ color: s.color }} />
+                  </div>
+                  <p className="text-4xl font-black italic tracking-tighter leading-none" style={{ color: s.color }}>{s.value}</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-3">{s.name}</p>
                 </div>
               ))}
-            </div>
-            <div className="bg-white p-10 rounded-[3rem] border shadow-sm h-96">
-               <h3 className="text-xl font-black text-gray-800 italic uppercase mb-8 flex items-center gap-3">
-                 <LayoutDashboard className="w-6 h-6 text-[#669900]" /> Distribución Global de Carga
-               </h3>
-               <ResponsiveContainer width="100%" height="100%">
-                 <BarChart data={globalStepCounts} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                   <YAxis axisLine={false} tickLine={false} hide />
-                   <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '20px', border:'none', boxShadow:'0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
-                   <Bar dataKey="value" radius={[15, 15, 0, 0]}>
-                     {globalStepCounts.map((entry, index) => (
-                       <Cell key={`cell-${index}`} fill={entry.color} />
-                     ))}
-                     <LabelList dataKey="value" position="top" style={{ fontWeight: 'black', fontSize: '14px' }} />
-                   </Bar>
-                 </BarChart>
-               </ResponsiveContainer>
             </div>
           </div>
         );
 
       case 1: // PASO 1 (Acogida)
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
             <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
               <h3 className="text-xl font-black text-gray-800 italic uppercase mb-8 flex items-center gap-3">
                 <Users className="w-6 h-6 text-[#669900]" /> Acogidas por Colaborador
               </h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={step1CollabData} layout="vertical" margin={{ left: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                    <Tooltip contentStyle={{borderRadius: '20px', border:'none'}} />
-                    <Bar dataKey="total" fill="#669900" radius={[0, 10, 10, 0]} name="Acogidas Realizadas" />
+                  <BarChart data={step1Data.collabRecap} margin={{ left: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                    <Tooltip cursor={{fill: 'transparent'}} />
+                    <Bar dataKey="count" fill="#669900" radius={[10, 10, 0, 0]}>
+                      <LabelList dataKey="count" position="top" style={{ fontWeight: 'black', fontSize: '12px' }} />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
-            <div className="bg-white p-10 rounded-[3rem] border shadow-sm flex flex-col justify-center text-center">
-              <h3 className="text-xl font-black text-gray-800 italic uppercase mb-10">Datos Recogidos en Acogida</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="p-8 bg-gray-50 rounded-[2.5rem] border">
-                  <p className="text-3xl font-black text-[#669900] italic leading-none">{step1CollabData.reduce((acc, curr) => acc + curr.reformas, 0)}</p>
-                  <p className="text-[10px] font-black text-gray-400 uppercase mt-2">Con Reforma</p>
+            <div className="bg-white p-10 rounded-[3rem] border shadow-sm flex flex-col justify-center gap-8">
+              <h3 className="text-xl font-black text-gray-800 italic uppercase text-center">Datos de Recogida</h3>
+              <div className="grid grid-cols-1 gap-6">
+                <div className="flex items-center justify-between p-8 bg-gray-50 rounded-[2.5rem] border">
+                  <span className="text-sm font-black text-gray-500 uppercase italic">Total Cocinas con Reforma</span>
+                  <span className="text-4xl font-black text-[#669900] italic">{step1Data.totals.reformas}</span>
                 </div>
-                <div className="p-8 bg-gray-50 rounded-[2.5rem] border">
-                  <p className="text-3xl font-black text-blue-500 italic leading-none">{step1CollabData.reduce((acc, curr) => acc + curr.instalaciones, 0)}</p>
-                  <p className="text-[10px] font-black text-gray-400 uppercase mt-2">Con Instalación</p>
+                <div className="flex items-center justify-between p-8 bg-gray-50 rounded-[2.5rem] border">
+                  <span className="text-sm font-black text-gray-500 uppercase italic">Total Cocinas con Instalación</span>
+                  <span className="text-4xl font-black text-blue-500 italic">{step1Data.totals.instalaciones}</span>
                 </div>
               </div>
             </div>
@@ -171,16 +162,16 @@ const Dashboard: React.FC<DashboardProps> = ({ projects }) => {
 
       case 2: // PASO 2 (Presupuesto)
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
             <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
               <h3 className="text-xl font-black text-gray-800 italic uppercase mb-10 flex items-center gap-3">
-                <FileText className="w-6 h-6 text-blue-500" /> Estados de Presupuestos
+                <FileText className="w-6 h-6 text-blue-500" /> Estadísticas de Presupuestos
               </h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={step2StatusData} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={10} dataKey="value">
-                      {step2StatusData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                    <Pie data={step2Data} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={10} dataKey="value">
+                      {step2Data.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                     </Pie>
                     <Tooltip contentStyle={{borderRadius: '25px', border:'none'}} />
                     <Legend verticalAlign="bottom" height={36} />
@@ -188,14 +179,11 @@ const Dashboard: React.FC<DashboardProps> = ({ projects }) => {
                 </ResponsiveContainer>
               </div>
             </div>
-            <div className="bg-white p-10 rounded-[3rem] border shadow-sm grid grid-cols-1 gap-4">
-              {step2StatusData.map((s, i) => (
-                <div key={i} className="flex items-center justify-between p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
-                  <div className="flex items-center gap-4">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i] }}></div>
-                    <span className="text-sm font-black text-gray-700 uppercase italic tracking-tighter">{s.name}</span>
-                  </div>
-                  <span className="text-2xl font-black italic text-gray-900">{s.value}</span>
+            <div className="flex flex-col justify-center gap-6">
+              {step2Data.map((s, i) => (
+                <div key={i} className="flex items-center justify-between p-8 bg-white rounded-[2.5rem] border shadow-sm" style={{ borderLeft: `8px solid ${COLORS[i]}` }}>
+                  <span className="text-sm font-black text-gray-700 uppercase italic">{s.name}</span>
+                  <span className="text-4xl font-black italic text-gray-900">{s.value}</span>
                 </div>
               ))}
             </div>
@@ -204,44 +192,51 @@ const Dashboard: React.FC<DashboardProps> = ({ projects }) => {
 
       case 3: // PASO 3 (Cierre)
         return (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="bg-white p-8 rounded-[2.5rem] border shadow-sm h-80">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-amber-500" /> Por Vendedor (Paso 2)
+          <div className="space-y-8 animate-fade-in">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
+                <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-8 flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-amber-500" /> Cocinas por Vendedor (Paso 2)
                 </h3>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={step3VendedorData}>
-                    <XAxis dataKey="name" hide />
-                    <Tooltip cursor={{fill: 'transparent'}} />
-                    <Bar dataKey="value" fill="#F59E0B" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={step3Data.sellerRecap}>
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                      <Bar dataKey="value" fill="#F59E0B" radius={[10, 10, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <div className="bg-white p-8 rounded-[2.5rem] border shadow-sm h-80">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-blue-500" /> Por Instalador
+              <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
+                <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-8 flex items-center gap-2">
+                  <Truck className="w-5 h-5 text-blue-500" /> Cocinas por Instalador
                 </h3>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={step3InstallerData}>
-                    <XAxis dataKey="name" hide />
-                    <Tooltip cursor={{fill: 'transparent'}} />
-                    <Bar dataKey="value" fill="#3B82F6" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={step3Data.installerRecap}>
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                      <Bar dataKey="value" fill="#3B82F6" radius={[10, 10, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <div className="bg-white p-8 rounded-[2.5rem] border shadow-sm h-80">
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                  <ArrowRightCircle className="w-4 h-4 text-[#669900]" /> Avance de Obra
-                </h3>
+            </div>
+            <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
+              <h3 className="text-xl font-black text-gray-800 italic uppercase mb-10 flex items-center gap-3">
+                <ArrowRightCircle className="w-6 h-6 text-[#669900]" /> Comparativa de Avance (Paso 3 vs Paso 4)
+              </h3>
+              <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={step3VsStep4Data} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
-                       <Cell fill="#e5e7eb" />
+                  <BarChart data={step3Data.flowCompare} margin={{ top: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontWeight: 'bold'}} />
+                    <YAxis hide />
+                    <Bar dataKey="value" radius={[20, 20, 0, 0]}>
+                       <Cell fill="#F59E0B" />
                        <Cell fill="#669900" />
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
+                       <LabelList dataKey="value" position="top" style={{ fontWeight: 'black', fontSize: '18px' }} />
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -250,15 +245,15 @@ const Dashboard: React.FC<DashboardProps> = ({ projects }) => {
 
       case 4: // PASO 4 (Seguimiento)
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
             <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
               <h3 className="text-xl font-black text-gray-800 italic uppercase mb-10 flex items-center gap-3">
-                <Activity className="w-6 h-6 text-red-500" /> Estado de Ejecución
+                <Activity className="w-6 h-6 text-red-500" /> Estado de Ejecución en Seguimiento
               </h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={step4StatusData} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={10} dataKey="value">
+                    <Pie data={step4Data} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={10} dataKey="value">
                       <Cell fill="#EF4444" />
                       <Cell fill="#669900" />
                     </Pie>
@@ -269,19 +264,19 @@ const Dashboard: React.FC<DashboardProps> = ({ projects }) => {
               </div>
             </div>
             <div className="flex flex-col justify-center gap-6">
-               <div className="p-8 bg-white rounded-[2.5rem] border shadow-sm flex items-center justify-between border-l-8 border-l-red-500">
+               <div className="p-10 bg-white rounded-[2.5rem] border shadow-sm flex items-center justify-between border-l-[12px] border-l-red-500 transition-transform hover:translate-x-2">
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">En Curso / Montaje</p>
-                    <p className="text-3xl font-black text-gray-800 italic">{step4StatusData[0].value}</p>
+                    <p className="text-5xl font-black text-gray-800 italic">{step4Data[0].value}</p>
                   </div>
-                  <Clock className="w-10 h-10 text-red-100" />
+                  <Clock className="w-12 h-12 text-red-100" />
                </div>
-               <div className="p-8 bg-white rounded-[2.5rem] border shadow-sm flex items-center justify-between border-l-8 border-l-[#669900]">
+               <div className="p-10 bg-white rounded-[2.5rem] border shadow-sm flex items-center justify-between border-l-[12px] border-l-[#669900] transition-transform hover:translate-x-2">
                   <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Terminadas OK</p>
-                    <p className="text-3xl font-black text-gray-800 italic">{step4StatusData[1].value}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cocinas Terminadas OK</p>
+                    <p className="text-5xl font-black text-gray-800 italic">{step4Data[1].value}</p>
                   </div>
-                  <CheckCircle2 className="w-10 h-10 text-green-100" />
+                  <CheckCircle2 className="w-12 h-12 text-green-100" />
                </div>
             </div>
           </div>
@@ -294,7 +289,6 @@ const Dashboard: React.FC<DashboardProps> = ({ projects }) => {
 
   return (
     <div className="space-y-10 animate-fade-in">
-      {/* Selector de Fase Premium */}
       <div className="bg-white p-2 rounded-[2.5rem] border shadow-sm flex items-center justify-between gap-1 overflow-x-auto scrollbar-hide sticky top-[188px] z-30">
         {[
           { id: 0, label: 'GLOBAL', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -306,9 +300,9 @@ const Dashboard: React.FC<DashboardProps> = ({ projects }) => {
           <button 
             key={s.id} 
             onClick={() => setSelectedStep(s.id)}
-            className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-[2rem] text-[11px] font-black uppercase tracking-widest transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 py-5 px-6 rounded-[2rem] text-[11px] font-black uppercase tracking-widest transition-all ${
               selectedStep === s.id 
-                ? 'bg-[#669900] text-white shadow-lg shadow-[#669900]/20 scale-95' 
+                ? 'bg-[#669900] text-white shadow-xl shadow-[#669900]/20 scale-95' 
                 : 'bg-white text-gray-400 hover:bg-gray-50'
             }`}
           >
