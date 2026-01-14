@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Project, Step } from './types';
 import Header from './components/Header';
 import StepOne from './components/StepOne';
@@ -8,9 +8,8 @@ import StepThree from './components/StepThree';
 import StepFour from './components/StepFour';
 import Dashboard from './components/Dashboard';
 import { STEP_ICONS } from './constants';
-import { RefreshCw, Database, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
 
-// NUEVA URL PROPORCIONADA POR EL USUARIO
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycIG428mdwrOxhd9MMee-qoPHZeguYsPFkgswAZjxh6DJazHkghYHp0bvkpa7hjykd/exec'; 
 
 const App: React.FC = () => {
@@ -18,65 +17,69 @@ const App: React.FC = () => {
   const [activeStep, setActiveStep] = useState<Step>(Step.ACOGIDA);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncSuccess, setSyncSuccess] = useState(false);
-  const [authError, setAuthError] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     const saved = localStorage.getItem('lm-projects');
-    if (saved) {
-      setProjects(JSON.parse(saved));
-    }
+    if (saved) setProjects(JSON.parse(saved));
     fetchDataFromSheets();
   }, []);
 
   const fetchDataFromSheets = async () => {
     if (!APPS_SCRIPT_URL) return;
     setIsSyncing(true);
-    setAuthError(false);
     try {
       const response = await fetch(APPS_SCRIPT_URL);
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) setAuthError(true);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error('Error al leer datos');
       const remoteData = await response.json();
       if (Array.isArray(remoteData)) {
         setProjects(remoteData);
         localStorage.setItem('lm-projects', JSON.stringify(remoteData));
-        showSyncSuccess();
       }
-    } catch (error) {
-      console.error("Error fetching from Sheets:", error);
-      setAuthError(true);
+    } catch (err) {
+      console.error("Fetch error:", err);
     } finally {
       setIsSyncing(false);
     }
   };
 
-  const showSyncSuccess = () => {
-    setSyncSuccess(true);
-    setTimeout(() => setSyncSuccess(false), 3000);
-  };
-
-  const syncProjectToSheets = async (project: Project) => {
-    if (!APPS_SCRIPT_URL) return;
+  const syncToSheets = useCallback(async (project: Project) => {
+    setSyncStatus('saving');
     try {
-      // Enviamos como text/plain para evitar problemas de CORS pre-flight
       await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors', 
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(project),
       });
-      showSyncSuccess();
-    } catch (error) {
-      console.error("Error syncing to Sheets:", error);
+      setSyncStatus('success');
+      setTimeout(() => setSyncStatus('idle'), 2000);
+    } catch (err) {
+      setSyncStatus('error');
     }
+  }, []);
+
+  const updateProject = (id: string, updates: Partial<Project>) => {
+    setProjects(prev => {
+      const updated = prev.map(p => {
+        if (p.id === id) {
+          const newProj = { ...p, ...updates };
+          syncToSheets(newProj);
+          return newProj;
+        }
+        return p;
+      });
+      localStorage.setItem('lm-projects', JSON.stringify(updated));
+      return updated;
+    });
   };
 
-  const saveProjects = (updated: Project[]) => {
+  const createProject = (newProject: Project) => {
+    const updated = [...projects, newProject];
     setProjects(updated);
     localStorage.setItem('lm-projects', JSON.stringify(updated));
+    syncToSheets(newProject);
+    setSelectedProjectId(newProject.id);
   };
 
   const handleProjectSelect = (id: string, step: number) => {
@@ -88,46 +91,27 @@ const App: React.FC = () => {
     projects.find(p => p.id === selectedProjectId) || null
   , [projects, selectedProjectId]);
 
-  const updateProject = (id: string, updates: Partial<Project>) => {
-    const updated = projects.map(p => {
-      if (p.id === id) {
-        const newProj = { ...p, ...updates };
-        syncProjectToSheets(newProj);
-        return newProj;
-      }
-      return p;
-    });
-    saveProjects(updated);
-  };
-
-  const createProject = (newProject: Project) => {
-    const updated = [...projects, newProject];
-    saveProjects(updated);
-    syncProjectToSheets(newProject);
-    setSelectedProjectId(newProject.id);
-  };
-
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50/50">
       <Header projects={projects} onSelectProject={handleProjectSelect} />
 
       <nav className="bg-white border-b shadow-sm sticky top-[72px] z-40">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <div className="flex space-x-8 overflow-x-auto scrollbar-hide">
+          <div className="flex space-x-4 md:space-x-8 overflow-x-auto scrollbar-hide">
             {[
-              { id: Step.ACOGIDA, label: 'Paso 1: Acogida' },
-              { id: Step.PRESUPUESTO, label: 'Paso 2: Presupuesto' },
-              { id: Step.VISITA, label: 'Paso 3: 2ª Visita' },
-              { id: Step.SEGUIMIENTO, label: 'Paso 4: Seguimiento' },
+              { id: Step.ACOGIDA, label: '1. Acogida' },
+              { id: Step.PRESUPUESTO, label: '2. Presupuesto' },
+              { id: Step.VISITA, label: '3. 2ª Visita' },
+              { id: Step.SEGUIMIENTO, label: '4. Seguimiento' },
               { id: Step.DASHBOARD, label: 'Dashboard' }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveStep(tab.id)}
-                className={`flex items-center space-x-2 py-4 border-b-2 font-medium transition-colors whitespace-nowrap ${
+                className={`flex items-center space-x-2 py-4 border-b-2 font-black transition-all whitespace-nowrap text-xs md:text-sm uppercase tracking-tighter italic ${
                   activeStep === tab.id 
                     ? 'border-[#669900] text-[#669900]' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-gray-400 hover:text-gray-600'
                 }`}
               >
                 {STEP_ICONS[tab.id as keyof typeof STEP_ICONS]}
@@ -136,26 +120,16 @@ const App: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex items-center gap-4">
-            {syncSuccess && (
-              <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-[#669900] bg-green-50 px-3 py-1 rounded-full border border-green-100 animate-fade-in">
-                <CheckCircle2 className="w-3 h-3" /> DATOS SINCRONIZADOS
-              </div>
-            )}
-            {authError && (
-              <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-red-500 bg-red-50 px-3 py-1 rounded-full border border-red-100 animate-pulse">
-                <AlertTriangle className="w-3 h-3" /> REVISA ACCESO AL EXCEL
-              </div>
-            )}
+          <div className="flex items-center gap-3">
+            {syncStatus === 'saving' && <span className="text-[9px] font-black text-blue-500 animate-pulse">AUTOGRABANDO...</span>}
+            {syncStatus === 'success' && <span className="text-[9px] font-black text-[#669900] flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> GUARDADO</span>}
             <button 
               onClick={fetchDataFromSheets}
               disabled={isSyncing}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                isSyncing ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-[#669900] hover:bg-green-100'
-              }`}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all"
             >
               <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'ACTUALIZANDO...' : 'SINCRONIZAR'}
+              SINCRO EXCEL
             </button>
           </div>
         </div>
@@ -192,6 +166,7 @@ const App: React.FC = () => {
             project={currentProject} 
             projects={projects.filter(p => p.currentStep === 4)}
             onUpdate={updateProject}
+            onSelect={handleProjectSelect}
           />
         )}
         {activeStep === Step.DASHBOARD && (
