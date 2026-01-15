@@ -17,43 +17,38 @@ export interface BudgetNote {
 }
 
 export interface Project {
-  id: string;
-  currentStep: number;
+  // 1-26 Columnas exactas para Excel
+  id: string;                               // 1
+  currentStep: number;                      // 2
+  ldapCollaborator: string;                 // 3
+  store: string;                            // 4
+  receptionDate: string;                    // 5
+  clientName: string;                       // 6
+  phone: string;                            // 7
+  kitchenDatePrediction: string;            // 8
+  approxBudget: number;                     // 9
+  willReform: boolean | string;             // 10
+  willInstall: boolean | string;            // 11
+  step2Collaborator: string;                // 12
+  budgetNumber: string;                     // 13
+  budgetDate: string;                       // 14
+  budgetType: string;                       // 15
+  status: ProjectStatus;                    // 16
+  totalAmount: number;                      // 17
+  handDrawnPlan: boolean | string;          // 18
+  measurementSent: boolean | string;        // 19
+  budgetNotes: string;                      // 20 (Almacena JSON o texto de notas P1/P2)
+  driveLink: string;                        // 21
+  closingDate: string;                      // 22
+  woMeasurement: string;                    // 23
+  installer: string;                        // 24
+  installationDate: string;                 // 25
+  followUpNotes: string;                    // 26
   
-  // Step 1: Acogida
-  ldapCollaborator: string;
-  store: string;
-  receptionDate: string;
-  clientName: string;
-  kitchenDatePrediction: string;
-  willReform: boolean;
-  willInstall: boolean;
-  approxBudget: number;
-  phone: string;
-  step2Collaborator: string;
-  step1Completed: boolean;
-
-  // Step 2: Presupuesto
-  budgetNumber?: string;
-  budgetDate?: string;
-  budgetType?: string;
-  status?: ProjectStatus;
-  totalAmount?: number;
-  handDrawnPlan?: boolean;
-  measurementSent?: boolean;
-  budgetNotes?: BudgetNote[];
-  step2Completed: boolean;
-
-  // Step 3: 2nd Visita
-  driveLink?: string;
-  closingDate?: string;
-  woMeasurement?: string;
-  installer?: string;
-  installationDate?: string;
-  step3Completed: boolean;
-
-  // Step 4: Seguimiento
-  followUpNotes?: string;
+  // Flags auxiliares (no van a Excel necesariamente pero ayudan a la lógica)
+  step1Completed?: boolean;
+  step2Completed?: boolean;
+  step3Completed?: boolean;
 }
 
 export const COLLABORATORS = [
