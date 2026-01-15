@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { Project, COLLABORATORS, INSTALLERS } from '../types';
+import { Project, COLLABORATORS, STATUS_OPTIONS } from '../types';
 import { 
   PieChart, 
   Pie, 
@@ -21,11 +21,15 @@ import {
   FileText, 
   CalendarRange, 
   Activity, 
-  UserCheck, 
-  Truck, 
   ArrowRightCircle,
-  Clock,
-  CheckCircle2
+  Euro,
+  TrendingUp,
+  Briefcase,
+  Filter,
+  X,
+  Calendar,
+  ChevronRight,
+  Target
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -33,287 +37,357 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ projects }) => {
-  const [selectedStep, setSelectedStep] = useState<number>(0); // 0 = Global
-  const COLORS = ['#669900', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+  const [selectedTab, setSelectedTab] = useState<number>(0); 
+  const [filterCollab, setFilterCollab] = useState<string>('all');
+  const [filterSeller, setFilterSeller] = useState<string>('all');
+  const [filterStart, setFilterStart] = useState<string>('');
+  const [filterEnd, setFilterEnd] = useState<string>('');
 
-  // --- MÉTRICAS GLOBAL (Paso 0) ---
-  const globalStepCounts = useMemo(() => [
-    { name: 'Paso 1 (Acogida)', value: projects.filter(p => p.currentStep === 1).length, color: '#669900' },
-    { name: 'Paso 2 (Presupuesto)', value: projects.filter(p => p.currentStep === 2).length, color: '#3B82F6' },
-    { name: 'Paso 3 (Cierre)', value: projects.filter(p => p.currentStep === 3).length, color: '#F59E0B' },
-    { name: 'Paso 4 (Seguimiento)', value: projects.filter(p => p.currentStep === 4).length, color: '#EF4444' },
-  ], [projects]);
-
-  // --- MÉTRICAS PASO 1 (Acogida) ---
-  const step1Data = useMemo(() => {
-    const step1Projects = projects.filter(p => p.currentStep >= 1);
-    const collabRecap = COLLABORATORS.map(col => ({
-      name: col.split(' ')[1],
-      count: step1Projects.filter(p => p.ldapCollaborator === col).length,
-    })).filter(d => d.count > 0);
-
-    const totals = {
-      reformas: step1Projects.filter(p => p.willReform).length,
-      instalaciones: step1Projects.filter(p => p.willInstall).length,
-      total: step1Projects.length
-    };
-
-    return { collabRecap, totals };
-  }, [projects]);
-
-  // --- MÉTRICAS PASO 2 (Presupuesto) ---
-  const step2Data = useMemo(() => {
-    const step2Projects = projects.filter(p => p.currentStep >= 2);
-    const statuses = ['En Curso', 'Gestionando', 'Gestionado'];
-    return statuses.map(s => ({
-      name: s,
-      value: step2Projects.filter(p => (p.status || 'En Curso') === s).length
-    }));
-  }, [projects]);
-
-  // --- MÉTRICAS PASO 3 (Cierre) ---
-  const step3Data = useMemo(() => {
-    const step3Projects = projects.filter(p => p.currentStep >= 3);
-    const sellerRecap = COLLABORATORS.map(col => ({
-      name: col.split(' ')[1],
-      value: step3Projects.filter(p => p.step2Collaborator === col).length
-    })).filter(d => d.value > 0);
-
-    const installerRecap = INSTALLERS.map(ins => ({
-      name: ins,
-      value: step3Projects.filter(p => p.installer === ins).length
-    })).filter(d => d.value > 0);
-
-    const flowCompare = [
-      { name: 'Pendientes Paso 3', value: projects.filter(p => p.currentStep === 3).length },
-      { name: 'Pasadas a Paso 4', value: projects.filter(p => p.currentStep >= 4).length }
-    ];
-
-    return { sellerRecap, installerRecap, flowCompare };
-  }, [projects]);
-
-  // --- MÉTRICAS PASO 4 (Seguimiento) ---
-  const step4Data = useMemo(() => {
-    const step4Projects = projects.filter(p => p.currentStep === 4);
-    return [
-      { name: 'En Curso / Montaje', value: step4Projects.filter(p => p.status !== 'Gestionado').length },
-      { name: 'Terminadas OK', value: step4Projects.filter(p => p.status === 'Gestionado').length }
-    ];
-  }, [projects]);
-
-  const renderContent = () => {
-    switch(selectedStep) {
-      case 0: // GLOBAL
-        return (
-          <div className="space-y-8 animate-fade-in">
-            <h3 className="text-xl font-black text-gray-800 italic uppercase flex items-center gap-3">
-              <LayoutDashboard className="w-6 h-6 text-[#669900]" /> Cocinas Pendientes por Fase
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {globalStepCounts.map((s, i) => (
-                <div key={i} className="bg-white p-8 rounded-[2.5rem] border shadow-sm group hover:scale-[1.02] transition-all flex flex-col items-center text-center">
-                  <div className="p-4 rounded-3xl mb-4" style={{ backgroundColor: `${s.color}15` }}>
-                     <Activity className="w-8 h-8" style={{ color: s.color }} />
-                  </div>
-                  <p className="text-4xl font-black italic tracking-tighter leading-none" style={{ color: s.color }}>{s.value}</p>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-3">{s.name}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 1: // PASO 1 (Acogida)
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
-            <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
-              <h3 className="text-xl font-black text-gray-800 italic uppercase mb-8 flex items-center gap-3">
-                <Users className="w-6 h-6 text-[#669900]" /> Acogidas por Colaborador
-              </h3>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={step1Data.collabRecap} margin={{ left: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                    <Tooltip cursor={{fill: 'transparent'}} />
-                    <Bar dataKey="count" fill="#669900" radius={[10, 10, 0, 0]}>
-                      <LabelList dataKey="count" position="top" style={{ fontWeight: 'black', fontSize: '12px' }} />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            <div className="bg-white p-10 rounded-[3rem] border shadow-sm flex flex-col justify-center gap-8">
-              <h3 className="text-xl font-black text-gray-800 italic uppercase text-center">Datos de Recogida</h3>
-              <div className="grid grid-cols-1 gap-6">
-                <div className="flex items-center justify-between p-8 bg-gray-50 rounded-[2.5rem] border">
-                  <span className="text-sm font-black text-gray-500 uppercase italic">Total Cocinas con Reforma</span>
-                  <span className="text-4xl font-black text-[#669900] italic">{step1Data.totals.reformas}</span>
-                </div>
-                <div className="flex items-center justify-between p-8 bg-gray-50 rounded-[2.5rem] border">
-                  <span className="text-sm font-black text-gray-500 uppercase italic">Total Cocinas con Instalación</span>
-                  <span className="text-4xl font-black text-blue-500 italic">{step1Data.totals.instalaciones}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 2: // PASO 2 (Presupuesto)
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
-            <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
-              <h3 className="text-xl font-black text-gray-800 italic uppercase mb-10 flex items-center gap-3">
-                <FileText className="w-6 h-6 text-blue-500" /> Estadísticas de Presupuestos
-              </h3>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={step2Data} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={10} dataKey="value">
-                      {step2Data.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{borderRadius: '25px', border:'none'}} />
-                    <Legend verticalAlign="bottom" height={36} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            <div className="flex flex-col justify-center gap-6">
-              {step2Data.map((s, i) => (
-                <div key={i} className="flex items-center justify-between p-8 bg-white rounded-[2.5rem] border shadow-sm" style={{ borderLeft: `8px solid ${COLORS[i]}` }}>
-                  <span className="text-sm font-black text-gray-700 uppercase italic">{s.name}</span>
-                  <span className="text-4xl font-black italic text-gray-900">{s.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 3: // PASO 3 (Cierre)
-        return (
-          <div className="space-y-8 animate-fade-in">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
-                <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-8 flex items-center gap-2">
-                  <UserCheck className="w-5 h-5 text-amber-500" /> Cocinas por Vendedor (Paso 2)
-                </h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={step3Data.sellerRecap}>
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                      <Bar dataKey="value" fill="#F59E0B" radius={[10, 10, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-              <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
-                <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-8 flex items-center gap-2">
-                  <Truck className="w-5 h-5 text-blue-500" /> Cocinas por Instalador
-                </h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={step3Data.installerRecap}>
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                      <Bar dataKey="value" fill="#3B82F6" radius={[10, 10, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
-              <h3 className="text-xl font-black text-gray-800 italic uppercase mb-10 flex items-center gap-3">
-                <ArrowRightCircle className="w-6 h-6 text-[#669900]" /> Comparativa de Avance (Paso 3 vs Paso 4)
-              </h3>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={step3Data.flowCompare} margin={{ top: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontWeight: 'bold'}} />
-                    <YAxis hide />
-                    <Bar dataKey="value" radius={[20, 20, 0, 0]}>
-                       <Cell fill="#F59E0B" />
-                       <Cell fill="#669900" />
-                       <LabelList dataKey="value" position="top" style={{ fontWeight: 'black', fontSize: '18px' }} />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 4: // PASO 4 (Seguimiento)
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
-            <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
-              <h3 className="text-xl font-black text-gray-800 italic uppercase mb-10 flex items-center gap-3">
-                <Activity className="w-6 h-6 text-red-500" /> Estado de Ejecución en Seguimiento
-              </h3>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={step4Data} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={10} dataKey="value">
-                      <Cell fill="#EF4444" />
-                      <Cell fill="#669900" />
-                    </Pie>
-                    <Tooltip contentStyle={{borderRadius: '25px', border:'none'}} />
-                    <Legend verticalAlign="bottom" height={36} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            <div className="flex flex-col justify-center gap-6">
-               <div className="p-10 bg-white rounded-[2.5rem] border shadow-sm flex items-center justify-between border-l-[12px] border-l-red-500 transition-transform hover:translate-x-2">
-                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">En Curso / Montaje</p>
-                    <p className="text-5xl font-black text-gray-800 italic">{step4Data[0].value}</p>
-                  </div>
-                  <Clock className="w-12 h-12 text-red-100" />
-               </div>
-               <div className="p-10 bg-white rounded-[2.5rem] border shadow-sm flex items-center justify-between border-l-[12px] border-l-[#669900] transition-transform hover:translate-x-2">
-                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cocinas Terminadas OK</p>
-                    <p className="text-5xl font-black text-gray-800 italic">{step4Data[1].value}</p>
-                  </div>
-                  <CheckCircle2 className="w-12 h-12 text-green-100" />
-               </div>
-            </div>
-          </div>
-        );
-      
-      default:
-        return null;
-    }
+  const STATUS_COLORS: Record<string, string> = {
+    'En Curso': '#3B82F6',
+    'Gestionando': '#F59E0B',
+    'Gestionado': '#669900',
+    'Anulado': '#EF4444'
   };
 
+  const filteredProjects = useMemo(() => {
+    return projects.filter(p => {
+      const matchCollab = filterCollab === 'all' || p.ldapCollaborator === filterCollab;
+      const matchSeller = filterSeller === 'all' || p.step2Collaborator === filterSeller;
+      const date = p.receptionDate ? new Date(p.receptionDate) : null;
+      const matchStart = !filterStart || (date && date >= new Date(filterStart));
+      const matchEnd = !filterEnd || (date && date <= new Date(filterEnd));
+      return matchCollab && matchSeller && matchStart && matchEnd;
+    });
+  }, [projects, filterCollab, filterSeller, filterStart, filterEnd]);
+
+  // ANÁLISIS FASE 1: ACOGIDA Y CONVERSIÓN
+  const acogidaStats = useMemo(() => {
+    return COLLABORATORS.map(collab => {
+      const name = collab.split(' ')[1];
+      const collProjs = filteredProjects.filter(p => p.ldapCollaborator === collab);
+      const reachedP3 = collProjs.filter(p => p.currentStep >= 3).length;
+      return {
+        name,
+        registrados: collProjs.length,
+        convertidosP3: reachedP3,
+        ratio: collProjs.length > 0 ? ((reachedP3 / collProjs.length) * 100).toFixed(1) : 0
+      };
+    }).filter(s => s.registrados > 0);
+  }, [filteredProjects]);
+
+  // ANÁLISIS FASE 2: PRESUPUESTOS (IMPORTES Y %)
+  const budgetStats = useMemo(() => {
+    const p2Projs = filteredProjects.filter(p => p.currentStep >= 2);
+    const totalP2Amount = p2Projs.reduce((sum, p) => sum + (Number(p.totalAmount) || Number(p.approxBudget) || 0), 0);
+    
+    const byStatus = STATUS_OPTIONS.map(status => {
+      const statusProjs = p2Projs.filter(p => p.status === status);
+      const amount = statusProjs.reduce((sum, p) => sum + (Number(p.totalAmount) || Number(p.approxBudget) || 0), 0);
+      return {
+        name: status,
+        value: amount,
+        percent: totalP2Amount > 0 ? ((amount / totalP2Amount) * 100).toFixed(1) : 0
+      };
+    }).filter(s => s.value > 0);
+
+    const bySeller = COLLABORATORS.map(collab => {
+      const name = collab.split(' ')[1];
+      const sellerProjs = p2Projs.filter(p => p.step2Collaborator === collab);
+      const sellerTotal = sellerProjs.reduce((sum, p) => sum + (Number(p.totalAmount) || Number(p.approxBudget) || 0), 0);
+      
+      const entry: any = { name, total: sellerTotal };
+      STATUS_OPTIONS.forEach(status => {
+        const amt = sellerProjs.filter(p => p.status === status).reduce((sum, p) => sum + (Number(p.totalAmount) || Number(p.approxBudget) || 0), 0);
+        entry[status] = amt;
+        entry[`${status}_%`] = sellerTotal > 0 ? ((amt / sellerTotal) * 100).toFixed(1) : 0;
+      });
+      return entry;
+    }).filter(s => s.total > 0);
+
+    return { byStatus, bySeller, totalP2Amount };
+  }, [filteredProjects]);
+
+  // ANÁLISIS FASE 3: CIERRE (ESTADOS POR VENDEDOR P2)
+  const cierreStats = useMemo(() => {
+    const p3Projs = filteredProjects.filter(p => p.currentStep >= 3);
+    return COLLABORATORS.map(collab => {
+      const name = collab.split(' ')[1];
+      const sellerProjs = p3Projs.filter(p => p.step2Collaborator === collab);
+      const entry: any = { name, total: sellerProjs.length };
+      STATUS_OPTIONS.forEach(status => {
+        entry[status] = sellerProjs.filter(p => p.status === status).length;
+      });
+      return entry;
+    }).filter(s => s.total > 0);
+  }, [filteredProjects]);
+
+  const funnelData = useMemo(() => [
+    { name: 'Acogida', value: filteredProjects.filter(p => p.currentStep === 1).length, color: '#669900' },
+    { name: 'Presupuesto', value: filteredProjects.filter(p => p.currentStep === 2).length, color: '#3B82F6' },
+    { name: 'Cierre', value: filteredProjects.filter(p => p.currentStep === 3).length, color: '#F59E0B' },
+    { name: 'Seguimiento', value: filteredProjects.filter(p => p.currentStep === 4).length, color: '#EF4444' }
+  ], [filteredProjects]);
+
   return (
-    <div className="space-y-10 animate-fade-in">
-      <div className="bg-white p-2 rounded-[2.5rem] border shadow-sm flex items-center justify-between gap-1 overflow-x-auto scrollbar-hide sticky top-[188px] z-30">
-        {[
-          { id: 0, label: 'GLOBAL', icon: <LayoutDashboard className="w-4 h-4" /> },
-          { id: 1, label: 'PASO 1', icon: <Users className="w-4 h-4" /> },
-          { id: 2, label: 'PASO 2', icon: <FileText className="w-4 h-4" /> },
-          { id: 3, label: 'PASO 3', icon: <CalendarRange className="w-4 h-4" /> },
-          { id: 4, label: 'PASO 4', icon: <Activity className="w-4 h-4" /> }
-        ].map(s => (
+    <div className="space-y-10 animate-fade-in pb-20">
+      {/* Barra de Filtros Integrada */}
+      <div className="bg-white p-6 rounded-[2.5rem] border shadow-sm flex flex-wrap items-center gap-6 animate-fade-in sticky top-[72px] z-50">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-50 rounded-xl">
+             <Filter className="w-5 h-5 text-[#669900]" />
+          </div>
+          <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Filtros:</span>
+        </div>
+        
+        <select 
+          value={filterCollab} 
+          onChange={e => setFilterCollab(e.target.value)}
+          className="bg-gray-50 border-none rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-[#669900]/20 min-w-[180px]"
+        >
+          <option value="all">COLAB. ALTA (TODOS)</option>
+          {COLLABORATORS.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        <select 
+          value={filterSeller} 
+          onChange={e => setFilterSeller(e.target.value)}
+          className="bg-gray-50 border-none rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500/20 min-w-[180px]"
+        >
+          <option value="all">VENDEDOR P2 (TODOS)</option>
+          {COLLABORATORS.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        <div className="flex items-center gap-4 bg-gray-50 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase border border-gray-100">
+          <Calendar className="w-4 h-4 text-gray-400" />
+          <div className="flex items-center gap-2">
+            <input type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} className="bg-transparent outline-none" />
+            <ChevronRight className="w-3 h-3 text-gray-200" />
+            <input type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} className="bg-transparent outline-none" />
+          </div>
+        </div>
+
+        {(filterCollab !== 'all' || filterSeller !== 'all' || filterStart || filterEnd) && (
           <button 
-            key={s.id} 
-            onClick={() => setSelectedStep(s.id)}
-            className={`flex-1 flex items-center justify-center gap-2 py-5 px-6 rounded-[2rem] text-[11px] font-black uppercase tracking-widest transition-all ${
-              selectedStep === s.id 
-                ? 'bg-[#669900] text-white shadow-xl shadow-[#669900]/20 scale-95' 
-                : 'bg-white text-gray-400 hover:bg-gray-50'
+            onClick={() => { setFilterCollab('all'); setFilterSeller('all'); setFilterStart(''); setFilterEnd(''); }}
+            className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all flex items-center gap-2 text-[10px] font-black uppercase"
+          >
+            <X className="w-4 h-4" /> Reset
+          </button>
+        )}
+      </div>
+
+      {/* Tabs de Dashboard */}
+      <div className="bg-gray-200/50 p-1.5 rounded-[2rem] flex items-center gap-1 overflow-x-auto scrollbar-hide">
+        {[
+          { id: 0, label: 'RESUMEN GLOBAL', icon: <LayoutDashboard className="w-4 h-4" /> },
+          { id: 1, label: 'ACOGIDA Y CONVERSIÓN', icon: <Users className="w-4 h-4" /> },
+          { id: 2, label: 'ANÁLISIS PRESUPUESTOS', icon: <FileText className="w-4 h-4" /> },
+          { id: 3, label: 'CIERRE Y VENDEDORES', icon: <CalendarRange className="w-4 h-4" /> }
+        ].map(tab => (
+          <button 
+            key={tab.id} 
+            onClick={() => setSelectedTab(tab.id)}
+            className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all ${
+              selectedTab === tab.id 
+                ? 'bg-white text-[#669900] shadow-sm' 
+                : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            {s.icon}
-            <span className="hidden md:inline">{s.label}</span>
+            {tab.icon}
+            <span className="hidden lg:inline">{tab.label}</span>
           </button>
         ))}
       </div>
 
-      <div className="min-h-[500px]">
-        {renderContent()}
+      <div className="min-h-[600px]">
+        {/* TAB 0: RESUMEN GLOBAL */}
+        {selectedTab === 0 && (
+          <div className="space-y-10 animate-fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+               {funnelData.map((s, i) => (
+                 <div key={i} className="bg-white p-8 rounded-[2.5rem] border shadow-sm group hover:shadow-xl transition-all">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full" style={{backgroundColor: s.color}}></div>
+                       Fase {i+1}: {s.name}
+                    </p>
+                    <div className="flex items-end justify-between">
+                       <span className="text-4xl font-black italic" style={{ color: s.color }}>{s.value}</span>
+                       <span className="text-[10px] font-black text-gray-300 uppercase">Proyectos</span>
+                    </div>
+                 </div>
+               ))}
+            </div>
+            
+            <div className="bg-white p-10 rounded-[3rem] border shadow-sm h-96">
+               <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-10 text-center italic">Embudo de Operaciones Activas</h4>
+               <ResponsiveContainer width="100%" height="100%">
+                 <BarChart data={funnelData}>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+                   <XAxis dataKey="name" axisLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                   <YAxis axisLine={false} tick={{fontSize: 10}} />
+                   <Tooltip cursor={{fill: '#F9FAFB'}} />
+                   <Bar dataKey="value" name="Proyectos" radius={[15, 15, 0, 0]} barSize={60}>
+                      {funnelData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                   </Bar>
+                 </BarChart>
+               </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 1: ACOGIDA Y CONVERSIÓN */}
+        {selectedTab === 1 && (
+          <div className="space-y-10 animate-fade-in">
+             <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
+                <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-10 flex items-center gap-3">
+                   <Target className="w-5 h-5 text-[#669900]" /> Conversión: Registrados vs Llegan a Paso 3
+                </h4>
+                <div className="h-96">
+                   <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={acogidaStats}>
+                         <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+                         <XAxis dataKey="name" axisLine={false} tick={{fontSize: 10, fontWeight: 'black'}} />
+                         <YAxis axisLine={false} tick={{fontSize: 10}} />
+                         <Tooltip />
+                         <Legend verticalAlign="top" align="right" />
+                         <Bar dataKey="registrados" name="Clientes Registrados (P1)" fill="#E5E7EB" radius={[10, 10, 0, 0]} />
+                         <Bar dataKey="convertidosP3" name="Llegan a Cierre (P3)" fill="#669900" radius={[10, 10, 0, 0]} />
+                      </BarChart>
+                   </ResponsiveContainer>
+                </div>
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {acogidaStats.map(s => (
+                   <div key={s.name} className="bg-white p-6 rounded-3xl border shadow-sm">
+                      <p className="text-[10px] font-black text-gray-400 uppercase mb-4">{s.name}</p>
+                      <div className="flex justify-between items-center">
+                         <span className="text-2xl font-black text-gray-900">{s.ratio}%</span>
+                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Éxito Conversión</span>
+                      </div>
+                      <div className="mt-4 w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                         <div className="bg-[#669900] h-full transition-all duration-500" style={{width: `${s.ratio}%`}}></div>
+                      </div>
+                   </div>
+                ))}
+             </div>
+          </div>
+        )}
+
+        {/* TAB 2: ANÁLISIS PRESUPUESTOS */}
+        {selectedTab === 2 && (
+          <div className="space-y-10 animate-fade-in">
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+               <div className="bg-white p-10 rounded-[3rem] border shadow-sm flex flex-col items-center">
+                 <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-8 flex items-center gap-2 w-full">
+                   <TrendingUp className="w-4 h-4 text-blue-500" /> Distribución por Estado (Importe y %)
+                 </h4>
+                 <div className="h-80 w-full">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <PieChart>
+                       <Pie 
+                         data={budgetStats.byStatus} 
+                         innerRadius={70} 
+                         outerRadius={110} 
+                         paddingAngle={5} 
+                         dataKey="value"
+                         label={({ name, percent, value }) => `${name}: ${percent}% (${(value/1000).toFixed(1)}k€)`}
+                       >
+                         {budgetStats.byStatus.map((entry: any, index: number) => (
+                           <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name]} />
+                         ))}
+                       </Pie>
+                       <Tooltip formatter={(val) => `${Number(val).toLocaleString()} €`} />
+                       <Legend verticalAlign="bottom" />
+                     </PieChart>
+                   </ResponsiveContainer>
+                 </div>
+               </div>
+
+               <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
+                 <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-8 flex items-center gap-2">
+                   <Briefcase className="w-4 h-4 text-[#669900]" /> Carga de Venta por Vendedor (P2)
+                 </h4>
+                 <div className="h-80 w-full">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <BarChart data={budgetStats.bySeller} layout="vertical">
+                       <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.2} />
+                       <XAxis type="number" hide />
+                       <YAxis dataKey="name" type="category" axisLine={false} tick={{fontSize: 11, fontWeight: 'black'}} width={80} />
+                       <Tooltip 
+                         formatter={(value, name, props) => {
+                           const pct = props.payload[`${name}_%`];
+                           return [`${Number(value).toLocaleString()} € (${pct}%)`, name];
+                         }}
+                       />
+                       {STATUS_OPTIONS.map((status) => (
+                         <Bar key={status} dataKey={status} stackId="a" fill={STATUS_COLORS[status]} barSize={35} />
+                       ))}
+                     </BarChart>
+                   </ResponsiveContainer>
+                 </div>
+               </div>
+             </div>
+
+             <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
+                <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-10 flex items-center gap-2">
+                   <Euro className="w-5 h-5 text-[#669900]" /> Volumen Económico por Estado
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                   {STATUS_OPTIONS.map(status => {
+                      const data = budgetStats.byStatus.find(s => s.name === status);
+                      const amount = data ? data.value : 0;
+                      const pct = data ? data.percent : 0;
+                      return (
+                        <div key={status} className="p-6 bg-gray-50 rounded-3xl border hover:border-[#669900]/30 transition-all">
+                           <div className="flex justify-between items-center mb-2">
+                              <span className="text-[9px] font-black text-gray-400 uppercase">{status}</span>
+                              <span className="text-[9px] font-black text-[#669900] bg-[#669900]/10 px-2 py-0.5 rounded-full">{pct}%</span>
+                           </div>
+                           <p className="text-2xl font-black italic" style={{color: STATUS_COLORS[status]}}>{amount.toLocaleString()} €</p>
+                        </div>
+                      );
+                   })}
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* TAB 3: CIERRE Y VENDEDORES */}
+        {selectedTab === 3 && (
+           <div className="space-y-10 animate-fade-in">
+              <div className="bg-white p-10 rounded-[3rem] border shadow-sm">
+                 <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-10 flex items-center gap-3">
+                    <Briefcase className="w-5 h-5 text-amber-500" /> Resumen de Estados por Vendedor P2 (Cantidades)
+                 </h4>
+                 <div className="h-96">
+                    <ResponsiveContainer width="100%" height="100%">
+                       <BarChart data={cierreStats}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+                          <XAxis dataKey="name" axisLine={false} tick={{fontSize: 10, fontWeight: 'black'}} />
+                          <YAxis axisLine={false} tick={{fontSize: 10}} />
+                          <Tooltip />
+                          <Legend />
+                          {STATUS_OPTIONS.map(status => (
+                             <Bar key={status} dataKey={status} stackId="a" fill={STATUS_COLORS[status]} />
+                          ))}
+                       </BarChart>
+                    </ResponsiveContainer>
+                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                 {cierreStats.map(s => (
+                    <div key={s.name} className="bg-white p-6 rounded-3xl border shadow-sm flex flex-col items-center">
+                       <p className="text-[10px] font-black text-gray-400 uppercase mb-2">{s.name}</p>
+                       <p className="text-3xl font-black text-[#669900] italic">{s.Gestionado || 0}</p>
+                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Cierres OK</p>
+                    </div>
+                 ))}
+              </div>
+           </div>
+        )}
       </div>
     </div>
   );

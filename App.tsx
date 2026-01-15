@@ -8,7 +8,6 @@ import StepThree from './components/StepThree';
 import StepFour from './components/StepFour';
 import Dashboard from './components/Dashboard';
 import { STEP_ICONS } from './constants';
-import { RefreshCw, CheckCircle2 } from 'lucide-react';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycIG428mdwrOxhd9MMee-qoPHZeguYsPFkgswAZjxh6DJazHkghYHp0bvkpa7hjykd/exec'; 
 
@@ -17,11 +16,6 @@ const App: React.FC = () => {
   const [activeStep, setActiveStep] = useState<Step>(Step.ACOGIDA);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
-
-  const [filterCollab, setFilterCollab] = useState<string>('all');
-  const [filterStart, setFilterStart] = useState<string>('');
-  const [filterEnd, setFilterEnd] = useState<string>('');
 
   useEffect(() => {
     const saved = localStorage.getItem('lm-projects');
@@ -55,36 +49,13 @@ const App: React.FC = () => {
   };
 
   const syncToSheets = useCallback(async (project: Project) => {
-    setSyncStatus('saving');
     try {
-      // 26 CAMPOS EN ORDEN ESTRICTO PARA EL EXCEL
       const payload = {
-        id: project.id,
-        currentStep: project.currentStep,
-        ldapCollaborator: project.ldapCollaborator,
-        store: project.store,
-        receptionDate: project.receptionDate,
-        clientName: project.clientName,
-        phone: project.phone,
-        kitchenDatePrediction: project.kitchenDatePrediction,
-        approxBudget: project.approxBudget,
+        ...project,
         willReform: project.willReform ? 'TRUE' : 'FALSE',
         willInstall: project.willInstall ? 'TRUE' : 'FALSE',
-        step2Collaborator: project.step2Collaborator,
-        budgetNumber: project.budgetNumber || '',
-        budgetDate: project.budgetDate || '',
-        budgetType: project.budgetType || '',
-        status: project.status || 'En Curso',
-        totalAmount: project.totalAmount || 0,
         handDrawnPlan: project.handDrawnPlan ? 'TRUE' : 'FALSE',
         measurementSent: project.measurementSent ? 'TRUE' : 'FALSE',
-        budgetNotes: project.budgetNotes || '',
-        driveLink: project.driveLink || '',
-        closingDate: project.closingDate || '',
-        woMeasurement: project.woMeasurement || '',
-        installer: project.installer || '',
-        installationDate: project.installationDate || '',
-        followUpNotes: project.followUpNotes || ''
       };
 
       await fetch(APPS_SCRIPT_URL, {
@@ -93,10 +64,8 @@ const App: React.FC = () => {
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload),
       });
-      setSyncStatus('success');
-      setTimeout(() => setSyncStatus('idle'), 2000);
     } catch (err) {
-      setSyncStatus('error');
+      console.error("Sync error:", err);
     }
   }, []);
 
@@ -131,15 +100,9 @@ const App: React.FC = () => {
       <Header 
         projects={projects} 
         onSelectProject={(id, step) => { setSelectedProjectId(id); setActiveStep(step); }}
-        filterCollab={filterCollab}
-        setFilterCollab={setFilterCollab}
-        filterStart={filterStart}
-        setFilterStart={setFilterStart}
-        filterEnd={filterEnd}
-        setFilterEnd={setFilterEnd}
       />
 
-      <nav className="bg-white border-b shadow-sm sticky top-[125px] z-40 w-full">
+      <nav className="bg-white border-b shadow-sm sticky top-[72px] z-40 w-full">
         <div className="max-w-7xl mx-auto flex items-stretch">
           {[
             { id: Step.ACOGIDA, label: '1. Acogida' },

@@ -9,15 +9,8 @@ export enum Step {
 
 export type ProjectStatus = 'En Curso' | 'Gestionando' | 'Gestionado' | 'Anulado';
 
-export interface BudgetNote {
-  id: string;
-  date: string;
-  author: string;
-  text: string;
-}
-
 export interface Project {
-  // 1-26 Columnas exactas para Excel
+  // Columnas 1-26 para Excel
   id: string;                               // 1
   currentStep: number;                      // 2
   ldapCollaborator: string;                 // 3
@@ -25,8 +18,8 @@ export interface Project {
   receptionDate: string;                    // 5
   clientName: string;                       // 6
   phone: string;                            // 7
-  kitchenDatePrediction: string;            // 8
-  approxBudget: number;                     // 9
+  kitchenDatePrediction: string;            // 8: Fecha aprox Instalación (P1)
+  approxBudget: number;                     // 9: Presupuesto aprox (P1)
   willReform: boolean | string;             // 10
   willInstall: boolean | string;            // 11
   step2Collaborator: string;                // 12
@@ -37,18 +30,13 @@ export interface Project {
   totalAmount: number;                      // 17
   handDrawnPlan: boolean | string;          // 18
   measurementSent: boolean | string;        // 19
-  budgetNotes: string;                      // 20 (Almacena JSON o texto de notas P1/P2)
+  budgetNotes: string;                      // 20: Observaciones Generales
   driveLink: string;                        // 21
   closingDate: string;                      // 22
   woMeasurement: string;                    // 23
   installer: string;                        // 24
   installationDate: string;                 // 25
-  followUpNotes: string;                    // 26
-  
-  // Flags auxiliares (no van a Excel necesariamente pero ayudan a la lógica)
-  step1Completed?: boolean;
-  step2Completed?: boolean;
-  step3Completed?: boolean;
+  followUpNotes: string;                    // 26: Seguimiento Final
 }
 
 export const COLLABORATORS = [
@@ -65,15 +53,15 @@ export const STORES = [
   "001 Tienda B"
 ];
 
-export const INSTALLERS = [
-  "Instalador A",
-  "Instalador B",
-  "Instalador C"
-];
-
 export const STATUS_OPTIONS: ProjectStatus[] = [
   'En Curso',
   'Gestionando',
   'Gestionado',
   'Anulado'
+];
+
+export const INSTALLERS = [
+  "Instalador A",
+  "Instalador B",
+  "Instalador C"
 ];
